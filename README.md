@@ -14,7 +14,7 @@
 | [common-response-spring-boot-starter](common-response-spring-boot-starter/) | 統一回應 | 自動包裝 `ApiResponse`、全局異常處理、錯誤碼體系 |
 | [common-jpa-spring-boot-starter](common-jpa-spring-boot-starter/) | JPA 通用 | 自動審計（建立/修改時間+操作人）、可選軟刪除 |
 | [care-security](care-security/) | 安全模組 | 認證授權、JWT、RBAC、LDAP、OTP、CAPTCHA |
-| [starter-showcase](starter-showcase/) | 展示專案 | 乾淨的 Demo，體驗所有 starter 的效果 |
+| [starter-showcase](https://github.com/yanchen184/starter-showcase) | 展示專案 | 獨立 repo，體驗所有 starter 的效果 |
 
 ---
 
@@ -302,12 +302,11 @@ company-common-starters/
 ├── common-log-spring-boot-starter/      ← 統一日誌
 ├── common-jpa-spring-boot-starter/      ← JPA 通用
 ├── common-response-spring-boot-starter/ ← 統一回應
-├── care-security/                       ← 安全模組
-│   ├── common-security-core/
-│   ├── common-security-autoconfigure/
-│   ├── common-security-spring-boot-starter/
-│   └── common-security-test/
-└── starter-showcase/                    ← Demo 展示專案（消費端範例）
+└── care-security/                       ← 安全模組
+    ├── common-security-core/
+    ├── common-security-autoconfigure/
+    ├── common-security-spring-boot-starter/
+    └── common-security-test/
 ```
 
 ### 版本管理
