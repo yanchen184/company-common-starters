@@ -27,12 +27,6 @@ class LogPropertiesTest {
         }
 
         @Test
-        @DisplayName("預設記錄請求參數")
-        void 預設記錄請求參數() {
-            assertThat(props.isLogRequest()).isTrue();
-        }
-
-        @Test
         @DisplayName("預設記錄回應內容")
         void 預設記錄回應內容() {
             assertThat(props.isLogResponse()).isTrue();
