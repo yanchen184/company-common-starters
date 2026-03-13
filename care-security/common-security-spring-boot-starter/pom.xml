@@ -19,5 +19,21 @@
             <groupId>com.company.common</groupId>
             <artifactId>common-security-autoconfigure</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.company.common</groupId>
+            <artifactId>common-security-auth-ldap</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.company.common</groupId>
+            <artifactId>common-security-auth-moica</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.company.common</groupId>
+            <artifactId>common-security-auth-otp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.company.common</groupId>
+            <artifactId>common-security-auth-captcha</artifactId>
+        </dependency>
     </dependencies>
 </project>

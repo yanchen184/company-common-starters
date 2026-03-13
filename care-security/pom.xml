@@ -24,6 +24,10 @@
 
     <modules>
         <module>common-security-core</module>
+        <module>common-security-auth-ldap</module>
+        <module>common-security-auth-moica</module>
+        <module>common-security-auth-otp</module>
+        <module>common-security-auth-captcha</module>
         <module>common-security-autoconfigure</module>
         <module>common-security-spring-boot-starter</module>
         <module>common-security-test</module>
@@ -34,6 +38,26 @@
             <dependency>
                 <groupId>com.company.common</groupId>
                 <artifactId>common-security-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-auth-ldap</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-auth-moica</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-auth-otp</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-auth-captcha</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -22,20 +22,11 @@ import com.company.common.security.repository.SaUserRepository;
 import com.company.common.security.security.CrudPermissionEvaluator;
 import com.company.common.security.security.CustomUserDetailsService;
 import com.company.common.security.security.JwtTokenCustomizer;
+import com.company.common.security.captcha.CaptchaService;
+import com.company.common.security.otp.OtpService;
 import com.company.common.security.security.LdapAuthenticationProvider;
 import com.company.common.security.security.LoginAttemptService;
 import com.company.common.security.security.RedisTokenBlacklistService;
-import com.company.common.security.captcha.CaptchaController;
-import com.company.common.security.captcha.CaptchaService;
-import com.company.common.security.cert.CertChallengeService;
-import com.company.common.security.cert.CertVerificationService;
-import com.company.common.security.cert.CitizenCertController;
-import com.company.common.security.cert.CitizenCertUserSyncService;
-import com.company.common.security.cert.LoginTokenService;
-import com.company.common.security.cert.MoicaCertService;
-import com.company.common.security.otp.OtpController;
-import com.company.common.security.otp.OtpService;
-import com.company.common.security.otp.TotpService;
 import com.company.common.security.service.AuditService;
 import com.company.common.security.service.AuthService;
 import com.company.common.security.service.LdapUserSyncService;
@@ -79,7 +70,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 import java.util.function.Supplier;
-import org.springframework.core.io.ResourceLoader;
 
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "care.security", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -175,147 +165,6 @@ public class CareSecurityAutoConfiguration {
     @ConditionalOnMissingBean(name = "saUserFactory")
     public Supplier<SaUser> saUserFactory() {
         return SaUser::new;
-    }
-
-    // ===== LDAP =====
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.ldap", name = "enabled", havingValue = "true")
-    public LdapAuthenticationProvider ldapAuthenticationProvider(CareSecurityProperties properties) {
-        CareSecurityProperties.Ldap ldap = properties.getLdap();
-        return new LdapAuthenticationProvider(
-                ldap.getUrl(), ldap.getBaseDn(), ldap.getUserSearchFilter(),
-                ldap.getBindDn(), ldap.getBindPassword(),
-                ldap.getDisplayNameAttr(), ldap.getEmailAttr());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.ldap", name = "enabled", havingValue = "true")
-    public LdapUserSyncService ldapUserSyncService(SaUserRepository saUserRepository,
-                                                    RoleRepository roleRepository,
-                                                    SaUserOrgRoleRepository saUserOrgRoleRepository,
-                                                    OrganizeRepository organizeRepository,
-                                                    CareSecurityProperties properties) {
-        return new LdapUserSyncService(saUserRepository, roleRepository,
-                saUserOrgRoleRepository, organizeRepository, properties.getLdap().getDefaultRoles());
-    }
-
-    // ===== CAPTCHA =====
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.captcha", name = "enabled", havingValue = "true")
-    public CaptchaService captchaService(RedisTemplate<String, Object> redisTemplate,
-                                          CareSecurityProperties properties) {
-        CareSecurityProperties.Captcha captcha = properties.getCaptcha();
-        return new CaptchaService(redisTemplate, captcha.getLength(), captcha.getExpireSeconds());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.captcha", name = "enabled", havingValue = "true")
-    public CaptchaController captchaController(CaptchaService captchaService) {
-        return new CaptchaController(captchaService);
-    }
-
-    // ===== OTP =====
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.otp", name = "enabled", havingValue = "true")
-    public TotpService totpService(CareSecurityProperties properties) {
-        return new TotpService(properties.getOtp().getAllowedSkew());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.otp", name = "enabled", havingValue = "true")
-    public OtpService otpService(TotpService totpService, SaUserRepository saUserRepository,
-                                  CareSecurityProperties properties) {
-        return new OtpService(totpService, saUserRepository, properties.getOtp().getIssuer());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.otp", name = "enabled", havingValue = "true")
-    public OtpController otpController(OtpService otpService, AuthService authService) {
-        return new OtpController(otpService, authService);
-    }
-
-    // ===== Citizen Certificate =====
-
-    /**
-     * @deprecated Kept for backward compatibility. New code should use {@link LoginTokenService}.
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.citizen-cert", name = "enabled", havingValue = "true")
-    @Deprecated
-    public CertChallengeService certChallengeService(RedisTemplate<String, Object> redisTemplate,
-                                                      CareSecurityProperties properties) {
-        return new CertChallengeService(redisTemplate,
-                properties.getCitizenCert().getChallengeExpireSeconds());
-    }
-
-    /**
-     * @deprecated Kept for backward compatibility. New code should use {@link MoicaCertService}.
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.citizen-cert", name = "enabled", havingValue = "true")
-    @Deprecated
-    public CertVerificationService certVerificationService() {
-        return new CertVerificationService();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.citizen-cert", name = "enabled", havingValue = "true")
-    public LoginTokenService loginTokenService(RedisTemplate<String, Object> redisTemplate,
-                                                CareSecurityProperties properties) {
-        return new LoginTokenService(redisTemplate,
-                properties.getCitizenCert().getChallengeExpireSeconds());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.citizen-cert", name = "enabled", havingValue = "true")
-    public MoicaCertService moicaCertService(ResourceLoader resourceLoader,
-                                              CareSecurityProperties properties) {
-        CareSecurityProperties.CitizenCert certProps = properties.getCitizenCert();
-        return new MoicaCertService(resourceLoader,
-                certProps.getIntermediateCertPaths(),
-                certProps.getLocalCrlPaths(),
-                certProps.isOcspEnabled(),
-                certProps.isCrlEnabled(),
-                certProps.getCrlCacheTtlHours());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.citizen-cert", name = "enabled", havingValue = "true")
-    public CitizenCertUserSyncService citizenCertUserSyncService(SaUserRepository saUserRepository,
-                                                                   RoleRepository roleRepository,
-                                                                   SaUserOrgRoleRepository saUserOrgRoleRepository,
-                                                                   OrganizeRepository organizeRepository,
-                                                                   CareSecurityProperties properties) {
-        return new CitizenCertUserSyncService(saUserRepository, roleRepository,
-                saUserOrgRoleRepository, organizeRepository,
-                properties.getCitizenCert().getDefaultRoles());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "care.security.citizen-cert", name = "enabled", havingValue = "true")
-    public CitizenCertController citizenCertController(LoginTokenService loginTokenService,
-                                                        MoicaCertService moicaCertService,
-                                                        CitizenCertUserSyncService citizenCertUserSyncService,
-                                                        AuthService authService,
-                                                        AuditService auditService) {
-        return new CitizenCertController(loginTokenService, moicaCertService,
-                citizenCertUserSyncService, authService, auditService);
     }
 
     // ===== Services =====
