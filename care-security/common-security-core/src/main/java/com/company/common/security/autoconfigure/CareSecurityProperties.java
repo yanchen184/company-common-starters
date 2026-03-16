@@ -114,6 +114,16 @@ public class CareSecurityProperties {
         private boolean enabled = false;
         private int length = 4;
         private int expireSeconds = 300;
+        /** 驗證碼字元集，預設純數字（向下相容） */
+        private String chars = "0123456789";
+        /** 圖片寬度（px） */
+        private int width = 160;
+        /** 圖片高度（px） */
+        private int height = 50;
+        /** 字型大小（px） */
+        private int fontSize = 32;
+        /** 是否啟用音訊驗證碼（無障礙） */
+        private boolean audioEnabled = false;
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
@@ -121,6 +131,16 @@ public class CareSecurityProperties {
         public void setLength(int length) { this.length = length; }
         public int getExpireSeconds() { return expireSeconds; }
         public void setExpireSeconds(int expireSeconds) { this.expireSeconds = expireSeconds; }
+        public String getChars() { return chars; }
+        public void setChars(String chars) { this.chars = chars; }
+        public int getWidth() { return width; }
+        public void setWidth(int width) { this.width = width; }
+        public int getHeight() { return height; }
+        public void setHeight(int height) { this.height = height; }
+        public int getFontSize() { return fontSize; }
+        public void setFontSize(int fontSize) { this.fontSize = fontSize; }
+        public boolean isAudioEnabled() { return audioEnabled; }
+        public void setAudioEnabled(boolean audioEnabled) { this.audioEnabled = audioEnabled; }
     }
 
     public static class CitizenCert {
@@ -131,7 +151,7 @@ public class CareSecurityProperties {
         private java.util.List<String> intermediateCertPaths = java.util.List.of(
                 "classpath:moica/MOICA2.cer", "classpath:moica/MOICA3.cer");
         private java.util.List<String> localCrlPaths = java.util.List.of(
-                "file:/opt/moica/MOICA2-complete.crl", "file:/opt/moica/MOICA3-complete.crl");
+                "classpath:moica/MOICA2.crl", "classpath:moica/MOICA3.crl");
         private boolean ocspEnabled = true;
         private boolean crlEnabled = true;
         private int crlCacheTtlHours = 1;

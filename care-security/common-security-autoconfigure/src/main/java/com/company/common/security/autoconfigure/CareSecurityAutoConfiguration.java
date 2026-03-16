@@ -22,14 +22,14 @@ import com.company.common.security.repository.SaUserRepository;
 import com.company.common.security.security.CrudPermissionEvaluator;
 import com.company.common.security.security.CustomUserDetailsService;
 import com.company.common.security.security.JwtTokenCustomizer;
-import com.company.common.security.captcha.CaptchaService;
-import com.company.common.security.otp.OtpService;
-import com.company.common.security.security.LdapAuthenticationProvider;
 import com.company.common.security.security.LoginAttemptService;
 import com.company.common.security.security.RedisTokenBlacklistService;
 import com.company.common.security.service.AuditService;
 import com.company.common.security.service.AuthService;
-import com.company.common.security.service.LdapUserSyncService;
+import com.company.common.security.spi.CaptchaVerifier;
+import com.company.common.security.spi.LdapAuthenticator;
+import com.company.common.security.spi.LdapUserSyncer;
+import com.company.common.security.spi.OtpChecker;
 import com.company.common.security.service.MenuService;
 import com.company.common.security.service.OrgRoleService;
 import com.company.common.security.service.OrganizeService;
@@ -178,6 +178,7 @@ public class CareSecurityAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @SuppressWarnings("checkstyle:ParameterNumber") // Spring @Bean factory method：所有依賴由容器注入，參數數量由業務決定
     public AuthService authService(CustomUserDetailsService userDetailsService,
                                     PasswordEncoder passwordEncoder,
                                     JwtEncoder jwtEncoder,
@@ -187,10 +188,10 @@ public class CareSecurityAutoConfiguration {
                                     AuditService auditService,
                                     SaUserRepository saUserRepository,
                                     PasswordHistoryService passwordHistoryService,
-                                    org.springframework.beans.factory.ObjectProvider<LdapAuthenticationProvider> ldapAuthProvider,
-                                    org.springframework.beans.factory.ObjectProvider<LdapUserSyncService> ldapUserSyncService,
-                                    org.springframework.beans.factory.ObjectProvider<OtpService> otpServiceProvider,
-                                    org.springframework.beans.factory.ObjectProvider<CaptchaService> captchaServiceProvider,
+                                    org.springframework.beans.factory.ObjectProvider<LdapAuthenticator> ldapAuthProvider,
+                                    org.springframework.beans.factory.ObjectProvider<LdapUserSyncer> ldapUserSyncService,
+                                    org.springframework.beans.factory.ObjectProvider<OtpChecker> otpServiceProvider,
+                                    org.springframework.beans.factory.ObjectProvider<CaptchaVerifier> captchaServiceProvider,
                                     CareSecurityProperties properties) {
         return new AuthService(userDetailsService, passwordEncoder, jwtEncoder, jwtDecoder,
                 blacklistService, loginAttemptService, auditService, saUserRepository, passwordHistoryService,

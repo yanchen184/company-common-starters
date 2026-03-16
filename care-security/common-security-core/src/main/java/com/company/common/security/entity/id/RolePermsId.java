@@ -26,8 +26,12 @@ public class RolePermsId implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         RolePermsId that = (RolePermsId) o;
         return Objects.equals(role, that.role) && Objects.equals(perm, that.perm);
     }

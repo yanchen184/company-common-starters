@@ -1,13 +1,13 @@
 package com.company.common.security.test;
 
-import com.company.common.security.captcha.CaptchaService;
+import com.company.common.security.service.CaptchaService;
 import com.company.common.security.dto.request.LoginRequest;
 import com.company.common.security.dto.request.OtpLoginRequest;
 import com.company.common.security.dto.response.TokenResponse;
 import com.company.common.security.entity.SaUser;
-import com.company.common.security.otp.OtpService;
-import com.company.common.security.otp.OtpService.OtpSetupResult;
-import com.company.common.security.otp.TotpService;
+import com.company.common.security.service.OtpService;
+import com.company.common.security.service.OtpService.OtpSetupResult;
+import com.company.common.security.service.TotpService;
 import com.company.common.security.repository.SaUserRepository;
 import com.company.common.security.service.AuthService;
 import org.junit.jupiter.api.*;
@@ -75,7 +75,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @CareSecurityTest
 @AutoConfigureMockMvc
-@Import({com.company.common.security.otp.OtpController.class,
+@Import({com.company.common.security.controller.OtpController.class,
          com.company.common.security.controller.AuthController.class,
          com.company.common.security.exception.SecurityExceptionHandler.class})
 @DisplayName("Phase 11: TOTP Two-Factor Authentication")

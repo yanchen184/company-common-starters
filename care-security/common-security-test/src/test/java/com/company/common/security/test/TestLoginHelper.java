@@ -1,6 +1,6 @@
 package com.company.common.security.test;
 
-import com.company.common.security.captcha.CaptchaService;
+import com.company.common.security.service.CaptchaService;
 import com.company.common.security.dto.request.LoginRequest;
 
 /**

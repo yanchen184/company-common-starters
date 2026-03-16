@@ -79,7 +79,9 @@ public class PasswordEncoderConfig {
                 String afterPrefix = storedPassword.substring(SHA512_PREFIX.length());
                 // afterPrefix = {base64salt}hexhash
                 int closeBrace = afterPrefix.indexOf('}');
-                if (closeBrace < 1) return false;
+                if (closeBrace < 1) {
+                    return false;
+                }
 
                 String base64Salt = afterPrefix.substring(1, closeBrace);
                 String hexHash = afterPrefix.substring(closeBrace + 1);
@@ -121,7 +123,9 @@ public class PasswordEncoderConfig {
 
         @Override
         public boolean matches(CharSequence rawPassword, String encodedPassword) {
-            if (encodedPassword == null) return false;
+            if (encodedPassword == null) {
+                return false;
+            }
 
             if (encodedPassword.startsWith("$2b$") ||
                     encodedPassword.startsWith("$2a$") || encodedPassword.startsWith("$2y$")) {

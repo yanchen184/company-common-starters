@@ -1,19 +1,20 @@
 package com.company.common.security.service;
 
-import com.company.common.security.captcha.CaptchaService;
 import com.company.common.security.dto.request.ChangePasswordRequest;
 import com.company.common.security.dto.request.LoginRequest;
 import com.company.common.security.dto.response.MyOrgResponse;
 import com.company.common.security.dto.response.TokenResponse;
 import com.company.common.security.entity.SaUser;
 import com.company.common.security.repository.SaUserRepository;
-import com.company.common.security.otp.OtpService;
 import com.company.common.security.security.CustomUserDetails;
 import com.company.common.security.security.CustomUserDetailsService;
-import com.company.common.security.security.LdapAuthenticationProvider;
-import com.company.common.security.security.LdapAuthenticationProvider.LdapUserInfo;
 import com.company.common.security.security.LoginAttemptService;
 import com.company.common.security.security.RedisTokenBlacklistService;
+import com.company.common.security.spi.CaptchaVerifier;
+import com.company.common.security.spi.LdapAuthenticator;
+import com.company.common.security.spi.LdapAuthenticator.LdapUserResult;
+import com.company.common.security.spi.LdapUserSyncer;
+import com.company.common.security.spi.OtpChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -21,7 +22,13 @@ import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
-import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -49,10 +56,10 @@ public class AuthService {
     private final AuditService auditService;
     private final SaUserRepository saUserRepository;
     private final PasswordHistoryService passwordHistoryService;
-    private final LdapAuthenticationProvider ldapAuthProvider;
-    private final LdapUserSyncService ldapUserSyncService;
-    private final OtpService otpService;
-    private final CaptchaService captchaService;
+    private final LdapAuthenticator ldapAuthProvider;
+    private final LdapUserSyncer ldapUserSyncService;
+    private final OtpChecker otpService;
+    private final CaptchaVerifier captchaService;
 
     public AuthService(CustomUserDetailsService userDetailsService,
                        PasswordEncoder passwordEncoder,
@@ -63,10 +70,10 @@ public class AuthService {
                        AuditService auditService,
                        SaUserRepository saUserRepository,
                        PasswordHistoryService passwordHistoryService,
-                       LdapAuthenticationProvider ldapAuthProvider,
-                       LdapUserSyncService ldapUserSyncService,
-                       OtpService otpService,
-                       CaptchaService captchaService,
+                       LdapAuthenticator ldapAuthProvider,
+                       LdapUserSyncer ldapUserSyncService,
+                       OtpChecker otpService,
+                       CaptchaVerifier captchaService,
                        int accessTokenTtlMinutes,
                        int refreshTokenTtlDays) {
         this.userDetailsService = userDetailsService;
@@ -101,7 +108,7 @@ public class AuthService {
 
         // Try LDAP authentication first (if enabled)
         if (ldapAuthProvider != null) {
-            Optional<LdapUserInfo> ldapResult = ldapAuthProvider.authenticate(request.username(), request.password());
+            Optional<LdapUserResult> ldapResult = ldapAuthProvider.authenticate(request.username(), request.password());
             if (ldapResult.isPresent()) {
                 return handleLdapLoginSuccess(ldapResult.get(), ipAddress, userAgent);
             }
@@ -113,7 +120,7 @@ public class AuthService {
         return handleLocalLogin(request, ipAddress, userAgent);
     }
 
-    private TokenResponse handleLdapLoginSuccess(LdapUserInfo ldapUser, String ipAddress, String userAgent) {
+    private TokenResponse handleLdapLoginSuccess(LdapUserResult ldapUser, String ipAddress, String userAgent) {
         // Sync LDAP user to local DB (create or update)
         SaUser user = ldapUserSyncService.syncUser(ldapUser);
 

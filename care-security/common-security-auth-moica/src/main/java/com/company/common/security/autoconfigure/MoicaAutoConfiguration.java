@@ -1,11 +1,9 @@
 package com.company.common.security.autoconfigure;
 
-import com.company.common.security.cert.CertChallengeService;
-import com.company.common.security.cert.CertVerificationService;
-import com.company.common.security.cert.CitizenCertController;
-import com.company.common.security.cert.CitizenCertUserSyncService;
-import com.company.common.security.cert.LoginTokenService;
-import com.company.common.security.cert.MoicaCertService;
+import com.company.common.security.controller.CitizenCertController;
+import com.company.common.security.service.CitizenCertUserSyncService;
+import com.company.common.security.service.LoginTokenService;
+import com.company.common.security.service.MoicaCertService;
 import com.company.common.security.repository.OrganizeRepository;
 import com.company.common.security.repository.RoleRepository;
 import com.company.common.security.repository.SaUserOrgRoleRepository;
@@ -86,21 +84,4 @@ public class MoicaAutoConfiguration {
                 citizenCertUserSyncService, authService, auditService);
     }
 
-    /** @deprecated Kept for backward compatibility */
-    @Bean
-    @ConditionalOnMissingBean
-    @Deprecated
-    public CertChallengeService certChallengeService(RedisTemplate<String, Object> redisTemplate,
-                                                      CareSecurityProperties properties) {
-        return new CertChallengeService(redisTemplate,
-                properties.getCitizenCert().getChallengeExpireSeconds());
-    }
-
-    /** @deprecated Kept for backward compatibility */
-    @Bean
-    @ConditionalOnMissingBean
-    @Deprecated
-    public CertVerificationService certVerificationService() {
-        return new CertVerificationService();
-    }
 }

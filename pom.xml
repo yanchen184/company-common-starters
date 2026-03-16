@@ -14,6 +14,8 @@
     <description>公司共用 Spring Boot Starter 集合 — 統一日誌、統一回應、JPA 通用模組、安全模組</description>
 
     <modules>
+        <!-- Build 規則（必須第一個，其他模組的 plugin 需要它） -->
+        <module>company-build-tools</module>
         <!-- 基礎 starter（無互相依賴） -->
         <module>common-log-spring-boot-starter</module>
         <module>common-jpa-spring-boot-starter</module>
@@ -29,6 +31,12 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Static Analysis -->
+        <checkstyle.version>3.6.0</checkstyle.version>
+        <spotbugs.version>4.9.3</spotbugs.version>
+        <!-- 從 company-build-tools jar 的 classpath 讀取規則檔 -->
+        <checkstyle.config>checkstyle.xml</checkstyle.config>
+        <spotbugs.excludeFilter>spotbugs-exclude.xml</spotbugs.excludeFilter>
     </properties>
 
     <dependencyManagement>
@@ -40,6 +48,13 @@
                 <version>${spring-boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <!-- ========== Build Tools ========== -->
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>company-build-tools</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <!-- ========== Company Starters BOM ========== -->
@@ -61,6 +76,36 @@
             <dependency>
                 <groupId>com.company.common</groupId>
                 <artifactId>common-security-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-autoconfigure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-auth-ldap</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-auth-moica</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-auth-otp</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-security-auth-captcha</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
@@ -90,7 +135,92 @@
                         </execution>
                     </executions>
                 </plugin>
+
+                <!-- ===== Checkstyle ===== -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${checkstyle.version}</version>
+                    <dependencies>
+                        <!-- 使用最新版 checkstyle 引擎，與 plugin 版本解耦 -->
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>10.21.4</version>
+                        </dependency>
+                        <!-- 規則檔來源：從這個 jar 的 classpath 讀取 checkstyle.xml -->
+                        <dependency>
+                            <groupId>com.company.common</groupId>
+                            <artifactId>company-build-tools</artifactId>
+                            <version>${project.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <configLocation>${checkstyle.config}</configLocation>
+                        <consoleOutput>true</consoleOutput>
+                        <failsOnError>true</failsOnError>
+                        <!-- 違規就讓 build 失敗 -->
+                        <violationSeverity>error</violationSeverity>
+                        <!-- 排除自動生成的程式碼 -->
+                        <excludes>**/generated/**,**/generated-sources/**</excludes>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>checkstyle-verify</id>
+                            <!-- 綁定到 verify phase，mvn verify 時自動執行 -->
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <!-- ===== SpotBugs ===== -->
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>${spotbugs.version}</version>
+                    <dependencies>
+                        <!-- 規則檔來源 -->
+                        <dependency>
+                            <groupId>com.company.common</groupId>
+                            <artifactId>company-build-tools</artifactId>
+                            <version>${project.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <!-- HIGH = 高可信度的 bug，減少誤報 -->
+                        <effort>Max</effort>
+                        <threshold>High</threshold>
+                        <excludeFilterFile>${spotbugs.excludeFilter}</excludeFilterFile>
+                        <!-- 違規就讓 build 失敗 -->
+                        <failOnError>true</failOnError>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>spotbugs-verify</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
             </plugins>
         </pluginManagement>
+
+        <!-- 讓所有子模組自動繼承這兩個 plugin，不需要每個模組手動宣告 -->
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
     </build>
 </project>

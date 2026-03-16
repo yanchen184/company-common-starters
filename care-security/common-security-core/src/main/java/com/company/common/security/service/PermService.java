@@ -61,7 +61,9 @@ public class PermService {
     }
 
     private void applyFields(Perm perm, PermRequest request) {
-        if (request.permCode() != null) perm.setPermCode(request.permCode());
+        if (request.permCode() != null) {
+            perm.setPermCode(request.permCode());
+        }
         if (request.menuId() != null) {
             Menu menu = menuRepository.findById(request.menuId())
                     .orElseThrow(() -> new IllegalArgumentException("Menu not found: " + request.menuId()));
@@ -69,11 +71,21 @@ public class PermService {
         } else {
             perm.setMenu(null);
         }
-        if (request.canCreate() != null) perm.setCanCreate(request.canCreate());
-        if (request.canRead() != null) perm.setCanRead(request.canRead());
-        if (request.canUpdate() != null) perm.setCanUpdate(request.canUpdate());
-        if (request.canDelete() != null) perm.setCanDelete(request.canDelete());
-        if (request.canApprove() != null) perm.setCanApprove(request.canApprove());
+        if (request.canCreate() != null) {
+            perm.setCanCreate(request.canCreate());
+        }
+        if (request.canRead() != null) {
+            perm.setCanRead(request.canRead());
+        }
+        if (request.canUpdate() != null) {
+            perm.setCanUpdate(request.canUpdate());
+        }
+        if (request.canDelete() != null) {
+            perm.setCanDelete(request.canDelete());
+        }
+        if (request.canApprove() != null) {
+            perm.setCanApprove(request.canApprove());
+        }
     }
 
     private PermResponse toResponse(Perm perm) {

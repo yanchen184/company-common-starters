@@ -1,11 +1,13 @@
 package com.company.common.security.autoconfigure;
 
+import com.company.common.security.controller.LdapController;
 import com.company.common.security.repository.OrganizeRepository;
 import com.company.common.security.repository.RoleRepository;
 import com.company.common.security.repository.SaUserOrgRoleRepository;
 import com.company.common.security.repository.SaUserRepository;
 import com.company.common.security.security.LdapAuthenticationProvider;
 import com.company.common.security.service.LdapUserSyncService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -42,6 +44,12 @@ public class LdapAutoConfiguration {
         return new LdapUserSyncService(saUserRepository, roleRepository,
                 saUserOrgRoleRepository, organizeRepository,
                 properties.getLdap().getDefaultRoles());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public LdapController ldapController(ObjectProvider<LdapAuthenticationProvider> ldapAuthProvider) {
+        return new LdapController(ldapAuthProvider);
     }
 
 }

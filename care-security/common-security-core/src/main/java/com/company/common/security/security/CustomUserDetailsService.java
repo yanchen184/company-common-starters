@@ -112,7 +112,9 @@ public class CustomUserDetailsService implements UserDetailsService {
             if (code == null && p.getMenu() != null) {
                 code = p.getMenu().getMenuCode();
             }
-            if (code == null) continue;
+            if (code == null) {
+                continue;
+            }
             // Merge permissions: if multiple roles grant same perm, OR the flags
             permMap.merge(code,
                     new CustomUserDetails.CrudPermission(

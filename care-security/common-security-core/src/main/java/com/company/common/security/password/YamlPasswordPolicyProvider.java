@@ -41,7 +41,8 @@ public class YamlPasswordPolicyProvider implements PasswordPolicyProvider {
      */
     public YamlPasswordPolicyProvider(PasswordPolicyConfig yamlConfig) {
         this.yamlConfig = yamlConfig;
-        log.info("YamlPasswordPolicyProvider initialized with config: minLength={}, requireUppercase={}, requireLowercase={}, requireDigit={}, requireSpecialChar={}",
+        log.info("YamlPasswordPolicyProvider initialized with config: "
+                + "minLength={}, requireUppercase={}, requireLowercase={}, requireDigit={}, requireSpecialChar={}",
                 yamlConfig.getMinLength(),
                 yamlConfig.isRequireUppercase(),
                 yamlConfig.isRequireLowercase(),

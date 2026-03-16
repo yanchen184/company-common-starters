@@ -1,7 +1,7 @@
 package com.company.common.security.autoconfigure;
 
-import com.company.common.security.captcha.CaptchaController;
-import com.company.common.security.captcha.CaptchaService;
+import com.company.common.security.controller.CaptchaController;
+import com.company.common.security.service.CaptchaService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,8 +23,7 @@ public class CaptchaAutoConfiguration {
     @ConditionalOnMissingBean
     public CaptchaService captchaService(RedisTemplate<String, Object> redisTemplate,
                                           CareSecurityProperties properties) {
-        CareSecurityProperties.Captcha captcha = properties.getCaptcha();
-        return new CaptchaService(redisTemplate, captcha.getLength(), captcha.getExpireSeconds());
+        return new CaptchaService(redisTemplate, properties.getCaptcha());
     }
 
     @Bean

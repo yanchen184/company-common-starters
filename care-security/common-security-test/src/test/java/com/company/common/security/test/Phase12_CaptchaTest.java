@@ -1,11 +1,13 @@
 package com.company.common.security.test;
 
-import com.company.common.security.captcha.CaptchaService;
+import com.company.common.security.autoconfigure.CareSecurityProperties;
+import com.company.common.security.service.CaptchaService;
 import com.company.common.security.dto.request.LoginRequest;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -52,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @CareSecurityTest
 @AutoConfigureMockMvc
-@Import({com.company.common.security.captcha.CaptchaController.class,
+@Import({com.company.common.security.controller.CaptchaController.class,
          com.company.common.security.controller.AuthController.class,
          com.company.common.security.exception.SecurityExceptionHandler.class})
 @DisplayName("Phase 12: Image CAPTCHA")
@@ -320,6 +322,188 @@ class Phase12_CaptchaTest {
 
             assertThat(j1.at("/data/captchaId").asText())
                     .isNotEqualTo(j2.at("/data/captchaId").asText());
+        }
+    }
+
+    // ========================================================================
+    // 12.5 Configurable Character Set
+    //
+    // User Story: As an administrator, I can configure the CAPTCHA character set
+    //             to include letters (e.g. alphanumeric) for stronger security.
+    //
+    // Acceptance Criteria:
+    //   - Default chars is "0123456789" (backward compatible)
+    //   - Custom chars are used for code generation
+    //   - Verification is case-insensitive for alphanumeric codes
+    // ========================================================================
+
+    @Nested
+    @DisplayName("12.5 Configurable Character Set")
+    class ConfigurableCharSet {
+
+        @Test
+        @DisplayName("default chars generates numeric-only code")
+        void defaultChars_numericOnly() {
+            // 預設字元集是 0-9，產生的 code 應該全是數字
+            for (int i = 0; i < 10; i++) {
+                CaptchaService.CaptchaResult result = captchaService.generateCaptcha();
+                String answer = captchaService.getAnswerForTest(result.captchaId());
+                assertThat(answer).matches("^[0-9]+$");
+            }
+        }
+
+        @Test
+        @DisplayName("verification is case-insensitive")
+        void verify_caseInsensitive() {
+            // 直接用 alphanumeric 的 CaptchaService 測試 case-insensitive
+            CareSecurityProperties.Captcha alphaConfig = new CareSecurityProperties.Captcha();
+            alphaConfig.setChars("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+            alphaConfig.setLength(4);
+            alphaConfig.setExpireSeconds(300);
+
+            @SuppressWarnings("unchecked")
+            RedisTemplate<String, Object> redis = (RedisTemplate<String, Object>)
+                    org.springframework.test.util.ReflectionTestUtils.getField(captchaService, "redisTemplate");
+
+            CaptchaService alphaService = new CaptchaService(redis, alphaConfig);
+            CaptchaService.CaptchaResult result = alphaService.generateCaptcha();
+            String answer = alphaService.getAnswerForTest(result.captchaId());
+
+            // 用全小寫驗證應該也要通過
+            assertThat(alphaService.verifyCaptcha(result.captchaId(), answer.toLowerCase())).isTrue();
+        }
+    }
+
+    // ========================================================================
+    // 12.6 Configurable Image Size
+    //
+    // User Story: As an administrator, I can configure the CAPTCHA image dimensions.
+    //
+    // Acceptance Criteria:
+    //   - Default width=160, height=50, fontSize=32
+    //   - Custom dimensions produce valid images
+    // ========================================================================
+
+    @Nested
+    @DisplayName("12.6 Configurable Image Size")
+    class ConfigurableImageSize {
+
+        @Test
+        @DisplayName("custom image size produces valid PNG with correct dimensions")
+        void customSize_producesCorrectDimensions() throws Exception {
+            CareSecurityProperties.Captcha customConfig = new CareSecurityProperties.Captcha();
+            customConfig.setWidth(200);
+            customConfig.setHeight(80);
+            customConfig.setFontSize(40);
+            customConfig.setLength(4);
+            customConfig.setExpireSeconds(300);
+
+            @SuppressWarnings("unchecked")
+            RedisTemplate<String, Object> redis = (RedisTemplate<String, Object>)
+                    org.springframework.test.util.ReflectionTestUtils.getField(captchaService, "redisTemplate");
+
+            CaptchaService customService = new CaptchaService(redis, customConfig);
+            CaptchaService.CaptchaResult result = customService.generateCaptcha();
+
+            byte[] imageBytes = java.util.Base64.getDecoder().decode(result.imageBase64());
+            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(
+                    new java.io.ByteArrayInputStream(imageBytes));
+
+            assertThat(img.getWidth()).isEqualTo(200);
+            assertThat(img.getHeight()).isEqualTo(80);
+        }
+    }
+
+    // ========================================================================
+    // 12.7 Audio CAPTCHA (Accessibility)
+    //
+    // User Story: As a visually impaired user, I can listen to the CAPTCHA code.
+    //
+    // Acceptance Criteria:
+    //   - audioEnabled=false -> GET /api/auth/captcha/audio/{id} returns 404
+    //   - audioEnabled=true  -> returns valid WAV base64
+    //   - Non-existent captchaId -> returns 404
+    //   - Audio does not consume the CAPTCHA (can still verify after)
+    // ========================================================================
+
+    @Nested
+    @DisplayName("12.7 Audio CAPTCHA (Accessibility)")
+    class AudioCaptcha {
+
+        @Test
+        @DisplayName("audio endpoint returns 404 when audioEnabled is false (default)")
+        void audioDisabled_returns404() throws Exception {
+            CaptchaService.CaptchaResult result = captchaService.generateCaptcha();
+
+            mockMvc.perform(get("/api/auth/captcha/audio/" + result.captchaId()))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("generateAudioBase64 returns valid WAV base64 when enabled")
+        void audioEnabled_generatesWav() {
+            CareSecurityProperties.Captcha audioConfig = new CareSecurityProperties.Captcha();
+            audioConfig.setAudioEnabled(true);
+            audioConfig.setLength(4);
+            audioConfig.setExpireSeconds(300);
+
+            @SuppressWarnings("unchecked")
+            RedisTemplate<String, Object> redis = (RedisTemplate<String, Object>)
+                    org.springframework.test.util.ReflectionTestUtils.getField(captchaService, "redisTemplate");
+
+            CaptchaService audioService = new CaptchaService(redis, audioConfig);
+            CaptchaService.CaptchaResult result = audioService.generateCaptcha();
+
+            String audioBase64 = audioService.generateAudioBase64(result.captchaId());
+            assertThat(audioBase64).isNotBlank();
+
+            // 驗證是合法的 WAV：RIFF header
+            byte[] wavBytes = java.util.Base64.getDecoder().decode(audioBase64);
+            assertThat(wavBytes.length).isGreaterThan(44); // WAV header >= 44 bytes
+            // "RIFF" magic bytes
+            assertThat(new String(wavBytes, 0, 4)).isEqualTo("RIFF");
+            // "WAVE" format
+            assertThat(new String(wavBytes, 8, 4)).isEqualTo("WAVE");
+        }
+
+        @Test
+        @DisplayName("generateAudioBase64 returns null for non-existent captchaId")
+        void audioNonExistentId_returnsNull() {
+            CareSecurityProperties.Captcha audioConfig = new CareSecurityProperties.Captcha();
+            audioConfig.setAudioEnabled(true);
+
+            @SuppressWarnings("unchecked")
+            RedisTemplate<String, Object> redis = (RedisTemplate<String, Object>)
+                    org.springframework.test.util.ReflectionTestUtils.getField(captchaService, "redisTemplate");
+
+            CaptchaService audioService = new CaptchaService(redis, audioConfig);
+            String audioBase64 = audioService.generateAudioBase64("non-existent-id");
+
+            assertThat(audioBase64).isNull();
+        }
+
+        @Test
+        @DisplayName("audio does not consume the CAPTCHA — can still verify after")
+        void audio_doesNotConsumeCaptcha() {
+            CareSecurityProperties.Captcha audioConfig = new CareSecurityProperties.Captcha();
+            audioConfig.setAudioEnabled(true);
+            audioConfig.setLength(4);
+            audioConfig.setExpireSeconds(300);
+
+            @SuppressWarnings("unchecked")
+            RedisTemplate<String, Object> redis = (RedisTemplate<String, Object>)
+                    org.springframework.test.util.ReflectionTestUtils.getField(captchaService, "redisTemplate");
+
+            CaptchaService audioService = new CaptchaService(redis, audioConfig);
+            CaptchaService.CaptchaResult result = audioService.generateCaptcha();
+            String answer = audioService.getAnswerForTest(result.captchaId());
+
+            // 呼叫 audio 後
+            String audioBase64 = audioService.generateAudioBase64(result.captchaId());
+            assertThat(audioBase64).isNotBlank();
+
+            // CAPTCHA 仍然可以驗證
+            assertThat(audioService.verifyCaptcha(result.captchaId(), answer)).isTrue();
         }
     }
 }

@@ -97,13 +97,25 @@ public class MenuService {
     }
 
     private void applyFields(Menu menu, MenuRequest request) {
-        if (request.menuName() != null) menu.setMenuName(request.menuName());
-        if (request.menuCode() != null) menu.setMenuCode(request.menuCode());
-        if (request.url() != null) menu.setUrl(request.url());
-        if (request.type() != null) menu.setType(request.type());
+        if (request.menuName() != null) {
+            menu.setMenuName(request.menuName());
+        }
+        if (request.menuCode() != null) {
+            menu.setMenuCode(request.menuCode());
+        }
+        if (request.url() != null) {
+            menu.setUrl(request.url());
+        }
+        if (request.type() != null) {
+            menu.setType(request.type());
+        }
         menu.setParentId(request.parentId());
-        if (request.sortOrder() != null) menu.setSortOrder(request.sortOrder());
-        if (request.icon() != null) menu.setIcon(request.icon());
+        if (request.sortOrder() != null) {
+            menu.setSortOrder(request.sortOrder());
+        }
+        if (request.icon() != null) {
+            menu.setIcon(request.icon());
+        }
         menu.setCPermAlias(request.cPermAlias());
         menu.setRPermAlias(request.rPermAlias());
         menu.setUPermAlias(request.uPermAlias());

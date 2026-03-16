@@ -1,8 +1,6 @@
 package com.company.common.jpa.repository;
 
 import com.company.common.jpa.entity.BaseEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.NoRepositoryBean;
 
 /**

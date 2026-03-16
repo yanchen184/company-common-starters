@@ -4,8 +4,14 @@ import com.company.common.security.dto.request.AssignOrgRoleRequest;
 import com.company.common.security.dto.request.CreateUserRequest;
 import com.company.common.security.dto.request.UpdateUserRequest;
 import com.company.common.security.dto.response.UserResponse;
-import com.company.common.security.entity.*;
-import com.company.common.security.repository.*;
+import com.company.common.security.entity.Organize;
+import com.company.common.security.entity.Role;
+import com.company.common.security.entity.SaUser;
+import com.company.common.security.entity.SaUserOrgRole;
+import com.company.common.security.repository.OrganizeRepository;
+import com.company.common.security.repository.RoleRepository;
+import com.company.common.security.repository.SaUserOrgRoleRepository;
+import com.company.common.security.repository.SaUserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,9 +109,15 @@ public class UserService {
         SaUser user = saUserRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
 
-        if (request.cname() != null) user.setCname(request.cname());
-        if (request.email() != null) user.setEmail(request.email());
-        if (request.enabled() != null) user.setEnabled(request.enabled());
+        if (request.cname() != null) {
+            user.setCname(request.cname());
+        }
+        if (request.email() != null) {
+            user.setEmail(request.email());
+        }
+        if (request.enabled() != null) {
+            user.setEnabled(request.enabled());
+        }
         user.setLastModifiedBy(operator);
 
         // Reassign global roles if provided

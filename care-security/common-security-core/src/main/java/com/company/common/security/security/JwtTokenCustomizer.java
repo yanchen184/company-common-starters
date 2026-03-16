@@ -30,7 +30,9 @@ public class JwtTokenCustomizer {
 
     public void customize(JwtEncodingContext context) {
         Authentication authentication = context.getPrincipal();
-        if (authentication == null) return;
+        if (authentication == null) {
+            return;
+        }
 
         String username = authentication.getName();
 

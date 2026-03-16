@@ -1,9 +1,9 @@
 package com.company.common.security.test;
 
-import com.company.common.security.cert.LoginTokenService;
-import com.company.common.security.cert.MoicaCertService;
-import com.company.common.security.cert.MoicaCertUtils;
-import com.company.common.security.cert.CitizenCertUserSyncService;
+import com.company.common.security.service.LoginTokenService;
+import com.company.common.security.service.MoicaCertService;
+import com.company.common.security.util.MoicaCertUtils;
+import com.company.common.security.service.CitizenCertUserSyncService;
 import com.company.common.security.entity.SaUser;
 import com.company.common.security.repository.SaUserRepository;
 import com.company.common.security.service.AuthService;
@@ -178,7 +178,7 @@ class Phase13_CitizenCertTest {
 
             String base64Pkcs7 = createPkcs7Signature(loginToken, keyPair, cert);
 
-            var pkcs7 = new com.company.common.security.cert.Pkcs7Utils(base64Pkcs7, loginToken);
+            var pkcs7 = new com.company.common.security.util.Pkcs7Utils(base64Pkcs7, loginToken);
             assertThat(pkcs7.valid()).isTrue();
             assertThat(pkcs7.getCert()).isNotNull();
             assertThat(pkcs7.getCardSN()).isNotNull();
@@ -194,7 +194,7 @@ class Phase13_CitizenCertTest {
             // Sign with "correct-token" but verify with "wrong-token"
             String base64Pkcs7 = createPkcs7Signature(loginToken, keyPair, cert);
 
-            var pkcs7 = new com.company.common.security.cert.Pkcs7Utils(base64Pkcs7, "wrong-token");
+            var pkcs7 = new com.company.common.security.util.Pkcs7Utils(base64Pkcs7, "wrong-token");
             assertThat(pkcs7.valid()).isFalse();
         }
 
@@ -207,7 +207,7 @@ class Phase13_CitizenCertTest {
 
             String base64Pkcs7 = createPkcs7Signature(loginToken, keyPair, cert);
 
-            var pkcs7 = new com.company.common.security.cert.Pkcs7Utils(base64Pkcs7, loginToken);
+            var pkcs7 = new com.company.common.security.util.Pkcs7Utils(base64Pkcs7, loginToken);
             X509Certificate extracted = pkcs7.getCert();
 
             assertThat(extracted).isNotNull();

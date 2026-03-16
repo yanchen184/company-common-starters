@@ -17,7 +17,6 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -150,8 +149,9 @@ public class ApiLogFilter extends OncePerRequestFilter {
                 // <-- 回應 log
                 long cost = System.currentTimeMillis() - startTime;
                 int status = wrappedResponse.getStatus();
-                logResponseLine(wrappedResponse, httpMethod, uri, cost, status,
-                        slowThreshold, logResponseBody, maskFields);
+                logResponseLine(wrappedResponse, new ResponseLogContext(
+                        httpMethod, uri, cost, status,
+                        slowThreshold, logResponseBody, maskFields));
             } else {
                 // 非 Controller 請求（不該到這裡，因為 shouldNotFilter 已過濾）
                 long cost = System.currentTimeMillis() - startTime;
@@ -224,17 +224,23 @@ public class ApiLogFilter extends OncePerRequestFilter {
 
     // ==================== <-- 回應 log ====================
 
+    /**
+     * 封裝 response log 所需的參數
+     */
+    private record ResponseLogContext(String httpMethod, String uri, long cost, int status,
+                                      long slowThreshold, boolean logResponseBody,
+                                      Set<String> maskFields) {
+    }
+
     private void logResponseLine(ContentCachingResponseWrapper response,
-                                  String httpMethod, String uri, long cost, int status,
-                                  long slowThreshold, boolean logResponseBody,
-                                  Set<String> maskFields) {
-        String bodyStr = buildResponseBodyString(response, logResponseBody, maskFields);
-        boolean isSlow = slowThreshold > 0 && cost >= slowThreshold;
+                                  ResponseLogContext ctx) {
+        String bodyStr = buildResponseBodyString(response, ctx.logResponseBody, ctx.maskFields);
+        boolean isSlow = ctx.slowThreshold > 0 && ctx.cost >= ctx.slowThreshold;
 
         if (isSlow) {
-            log.warn("<-- {} {} {} {}ms [SLOW]{}", status, httpMethod, uri, cost, bodyStr);
+            log.warn("<-- {} {} {} {}ms [SLOW]{}", ctx.status, ctx.httpMethod, ctx.uri, ctx.cost, bodyStr);
         } else {
-            log.info("<-- {} {} {} {}ms{}", status, httpMethod, uri, cost, bodyStr);
+            log.info("<-- {} {} {} {}ms{}", ctx.status, ctx.httpMethod, ctx.uri, ctx.cost, bodyStr);
         }
     }
 

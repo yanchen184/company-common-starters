@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs Exclude Filter
+  列出刻意忽略的 bug pattern，附上原因。
+  原則：只排除「已知的誤報」或「框架本身造成的警告」，不排除真實問題。
+-->
+<FindBugsFilter>
+
+    <!-- Spring @Autowired / @Value 欄位未初始化：框架注入，非真實 null 問題 -->
+    <Match>
+        <Bug pattern="UWF_UNWRITTEN_FIELD,NP_UNWRITTEN_FIELD"/>
+        <Class name="~.*AutoConfiguration"/>
+    </Match>
+
+    <!-- JPA Entity 的欄位由 Hibernate 管理，SpotBugs 看不懂 -->
+    <Match>
+        <Bug pattern="UWF_UNWRITTEN_FIELD,NP_UNWRITTEN_FIELD,SE_NO_SERIALVERSIONUID"/>
+        <Class name="~com\.company\.common\.security\.entity\..*"/>
+    </Match>
+
+    <!-- DTO / Record 的 equals/hashCode 由編譯器生成，非真實問題 -->
+    <Match>
+        <Bug pattern="EQ_UNUSUAL"/>
+        <Class name="~.*Dto|~.*Request|~.*Response"/>
+    </Match>
+
+    <!-- 測試程式碼：允許 System.out、寬鬆的 null 使用 -->
+    <Match>
+        <Bug pattern="DM_DEFAULT_ENCODING,NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Class name="~.*Test.*"/>
+    </Match>
+
+    <!-- Spring Security 的 HttpSecurity DSL 的 method chain 誤報 -->
+    <Match>
+        <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
+        <Class name="~.*SecurityConfig.*"/>
+    </Match>
+
+</FindBugsFilter>

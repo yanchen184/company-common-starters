@@ -1,7 +1,7 @@
 package com.company.common.security.test;
 
 import tools.jackson.databind.ObjectMapper;
-import com.company.common.security.captcha.CaptchaService;
+import com.company.common.security.service.CaptchaService;
 import com.company.common.security.dto.request.LoginRequest;
 // import com.company.common.security.dto.request.SwitchOrgRequest; // Removed: switch-org feature disabled
 import com.company.common.security.dto.response.MyOrgResponse;

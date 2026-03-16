@@ -2,7 +2,10 @@ package com.company.common.log.util;
 
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 敏感欄位遮罩與序列化工具
@@ -58,7 +61,9 @@ public final class MaskUtils {
     private static String maskAndSerializeList(List<?> list, Set<String> maskFields, ObjectMapper objectMapper) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < list.size(); i++) {
-            if (i > 0) sb.append(", ");
+            if (i > 0) {
+                sb.append(", ");
+            }
             sb.append(maskAndSerialize(list.get(i), maskFields, objectMapper));
         }
         sb.append(']');
@@ -72,7 +77,9 @@ public final class MaskUtils {
         StringBuilder sb = new StringBuilder("{");
         boolean first = true;
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (!first) sb.append(", ");
+            if (!first) {
+                sb.append(", ");
+            }
             sb.append(entry.getKey()).append(':').append(entry.getValue());
             first = false;
         }
@@ -100,7 +107,9 @@ public final class MaskUtils {
      * @return 序列化後的字串，例如 {username:admin, password:***}，或 null 若無參數
      */
     public static String maskQueryParams(Map<String, String[]> paramMap, Set<String> maskFields) {
-        if (paramMap == null || paramMap.isEmpty()) return null;
+        if (paramMap == null || paramMap.isEmpty()) {
+            return null;
+        }
 
         Map<String, Object> params = new LinkedHashMap<>();
         paramMap.forEach((key, values) -> {

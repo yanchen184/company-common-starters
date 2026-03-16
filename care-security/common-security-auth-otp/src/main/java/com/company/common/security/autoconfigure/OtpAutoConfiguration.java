@@ -1,8 +1,8 @@
 package com.company.common.security.autoconfigure;
 
-import com.company.common.security.otp.OtpController;
-import com.company.common.security.otp.OtpService;
-import com.company.common.security.otp.TotpService;
+import com.company.common.security.controller.OtpController;
+import com.company.common.security.service.OtpService;
+import com.company.common.security.service.TotpService;
 import com.company.common.security.repository.SaUserRepository;
 import com.company.common.security.service.AuthService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

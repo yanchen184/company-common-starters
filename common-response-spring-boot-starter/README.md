@@ -360,6 +360,59 @@ public class SecurityExceptionHandler {
 }
 ```
 
+### 搭配 i18n 錯誤訊息
+
+Starter 不內建 i18n，但消費端可以透過 `MessageSource` 輕鬆實現：
+
+**1. 建立翻譯檔**
+
+```properties
+# src/main/resources/messages.properties（預設 / 中文）
+SC_B001=商品不存在
+SC_B002=商品名稱已存在
+
+# src/main/resources/messages_en.properties
+SC_B001=Product not found
+SC_B002=Product name already exists
+```
+
+**2. 自訂 ExceptionHandler 覆蓋預設**
+
+```java
+@RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
+public class I18nExceptionHandler {
+
+    private final MessageSource messageSource;
+
+    public I18nExceptionHandler(MessageSource messageSource) {
+        this.messageSource = messageSource;
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<Void>> handle(BusinessException ex, Locale locale) {
+        // 用 code 查翻譯，找不到就 fallback 到 enum 預設訊息
+        String msg = messageSource.getMessage(ex.getCode(), null, ex.getMessage(), locale);
+        return ResponseEntity.status(ex.getHttpStatus())
+                .body(ApiResponse.error(ex.getCode(), msg));
+    }
+}
+```
+
+**3. 客戶端帶 `Accept-Language` header 即可切換語系**
+
+```bash
+# 中文
+curl -H "Accept-Language: zh-TW" /api/products/999
+# → {"code": "SC_B001", "message": "商品不存在"}
+
+# 英文
+curl -H "Accept-Language: en" /api/products/999
+# → {"code": "SC_B001", "message": "Product not found"}
+```
+
+> `ErrorCode` enum 裡的 message 作為 fallback，沒有翻譯檔的專案完全不受影響。
+
 ### 搭配分頁查詢
 
 ```java
