@@ -1,6 +1,7 @@
 package com.company.common.security.autoconfigure;
 
 import com.company.common.security.controller.OtpController;
+import com.company.common.security.security.LoginAttemptService;
 import com.company.common.security.service.OtpService;
 import com.company.common.security.service.TotpService;
 import com.company.common.security.repository.SaUserRepository;
@@ -36,7 +37,8 @@ public class OtpAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public OtpController otpController(OtpService otpService, AuthService authService) {
-        return new OtpController(otpService, authService);
+    public OtpController otpController(OtpService otpService, AuthService authService,
+                                        LoginAttemptService loginAttemptService) {
+        return new OtpController(otpService, authService, loginAttemptService);
     }
 }

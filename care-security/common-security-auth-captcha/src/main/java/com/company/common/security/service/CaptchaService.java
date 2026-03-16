@@ -213,7 +213,9 @@ public class CaptchaService implements CaptchaVerifier {
 
             for (int s = 0; s < charSamples; s++) {
                 int sampleIndex = startSample + s;
-                if (sampleIndex >= totalSamples) break;
+                if (sampleIndex >= totalSamples) {
+                    break;
+                }
 
                 // 正弦波，振幅 0.8（避免破音）
                 double t = s / sampleRate;

@@ -36,4 +36,10 @@
         <Class name="~.*SecurityConfig.*"/>
     </Match>
 
+    <!-- SecureRandom 用一次就好：generateSecret() 不需保持 instance，每次呼叫頻率極低 -->
+    <Match>
+        <Bug pattern="DMI_RANDOM_USED_ONLY_ONCE"/>
+        <Class name="com.company.common.security.service.TotpService"/>
+    </Match>
+
 </FindBugsFilter>

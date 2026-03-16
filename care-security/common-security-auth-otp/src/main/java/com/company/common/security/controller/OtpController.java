@@ -5,6 +5,7 @@ import com.company.common.security.dto.request.OtpVerifyRequest;
 import com.company.common.response.dto.ApiResponse;
 import com.company.common.security.dto.response.OtpSetupResponse;
 import com.company.common.security.dto.response.TokenResponse;
+import com.company.common.security.security.LoginAttemptService;
 import com.company.common.security.service.OtpService;
 import com.company.common.security.service.OtpService.OtpSetupResult;
 import com.company.common.security.service.AuthService;
@@ -27,10 +28,13 @@ public class OtpController {
 
     private final OtpService otpService;
     private final AuthService authService;
+    private final LoginAttemptService loginAttemptService;
 
-    public OtpController(OtpService otpService, AuthService authService) {
+    public OtpController(OtpService otpService, AuthService authService,
+                          LoginAttemptService loginAttemptService) {
         this.otpService = otpService;
         this.authService = authService;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @Operation(summary = "Setup OTP", description = "Generate a new TOTP secret for the authenticated user. Returns secret and QR code URI.")
@@ -60,8 +64,10 @@ public class OtpController {
             HttpServletRequest httpRequest) {
         boolean valid = otpService.verifyOtp(request.username(), request.code());
         if (!valid) {
+            loginAttemptService.loginFailed(request.username());
             return ResponseEntity.badRequest().body(ApiResponse.error("Invalid OTP code"));
         }
+        loginAttemptService.loginSucceeded(request.username());
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
         TokenResponse token = authService.completeOtpLogin(request.username(), ipAddress, userAgent);
