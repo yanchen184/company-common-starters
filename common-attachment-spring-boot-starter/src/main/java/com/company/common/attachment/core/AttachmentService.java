@@ -19,7 +19,7 @@ import org.apache.tika.Tika;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Comparator;
@@ -40,17 +40,20 @@ public class AttachmentService {
 
     @Transactional
     public AttachmentUploadResponse upload(AttachmentUploadRequest request) throws IOException {
+        // 先讀成 byte[]，避免 Tika 偵測後 stream 被消耗導致存檔內容截斷
+        byte[] content = request.inputStream().readAllBytes();
+        long actualSize = content.length;
+
         // 用 Tika 偵測真實 MIME type（而非信任 client 提供的 contentType）
-        InputStream buffered = new BufferedInputStream(request.inputStream());
-        String detectedMimeType = tika.detect(buffered, request.originalFilename());
+        String detectedMimeType = tika.detect(content, request.originalFilename());
 
         AttachmentUploadRequest enrichedRequest = new AttachmentUploadRequest(
                 request.ownerType(),
                 request.ownerId(),
                 request.originalFilename(),
                 request.displayName(),
-                buffered,
-                request.fileSize(),
+                new ByteArrayInputStream(content),
+                actualSize,
                 detectedMimeType
         );
 
@@ -59,9 +62,9 @@ public class AttachmentService {
                 .sorted(Comparator.comparingInt(AttachmentValidator::getOrder))
                 .forEach(v -> v.validate(enrichedRequest));
 
-        // 儲存檔案
+        // 儲存檔案（用新的 ByteArrayInputStream，確保完整內容）
         StorageResult result = storageStrategy.store(
-                request.originalFilename(), enrichedRequest.inputStream());
+                request.originalFilename(), new ByteArrayInputStream(content));
 
         // 持久化 metadata
         AttachmentEntity entity = new AttachmentEntity();
@@ -80,8 +83,9 @@ public class AttachmentService {
         log.info("附件上傳完成: id={}, filename={}, mimeType={}, size={} bytes",
                 entity.getId(), entity.getOriginalFilename(), entity.getMimeType(), entity.getFileSize());
 
-        // 發布事件（commit 後觸發圖片壓縮等後處理）
-        eventPublisher.publishEvent(new AttachmentUploadedEvent(this, entity));
+        // 發布事件（傳 ID，不傳 entity，避免 detached entity 問題）
+        eventPublisher.publishEvent(new AttachmentUploadedEvent(this, entity.getId(),
+                entity.getStoredFilename(), entity.getMimeType(), entity.getFileSize()));
 
         return toUploadResponse(entity);
     }
@@ -113,7 +117,8 @@ public class AttachmentService {
         attachmentRepository.save(entity);
         log.info("附件已軟刪除: id={}, filename={}", id, entity.getOriginalFilename());
 
-        eventPublisher.publishEvent(new AttachmentDeletedEvent(this, entity));
+        eventPublisher.publishEvent(new AttachmentDeletedEvent(this, entity.getId(),
+                entity.getStoredFilename()));
     }
 
     @Transactional(readOnly = true)

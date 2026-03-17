@@ -1,18 +1,17 @@
 package com.company.common.attachment.event;
 
-import com.company.common.attachment.persistence.entity.AttachmentEntity;
+import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
+@Getter
 public class AttachmentDeletedEvent extends ApplicationEvent {
 
-    private final AttachmentEntity attachment;
+    private final Long attachmentId;
+    private final String storedFilename;
 
-    public AttachmentDeletedEvent(Object source, AttachmentEntity attachment) {
+    public AttachmentDeletedEvent(Object source, Long attachmentId, String storedFilename) {
         super(source);
-        this.attachment = attachment;
-    }
-
-    public AttachmentEntity getAttachment() {
-        return attachment;
+        this.attachmentId = attachmentId;
+        this.storedFilename = storedFilename;
     }
 }

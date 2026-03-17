@@ -143,6 +143,7 @@ class AttachmentServiceTest {
         AttachmentEntity entity = new AttachmentEntity();
         entity.setId(1L);
         entity.setOriginalFilename("test.pdf");
+        entity.setStoredFilename("stored-test.pdf");
 
         when(attachmentRepository.findByIdActive(1L)).thenReturn(Optional.of(entity));
         when(accessPolicy.canDelete(entity)).thenReturn(true);

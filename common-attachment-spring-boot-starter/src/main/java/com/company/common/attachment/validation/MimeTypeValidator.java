@@ -24,7 +24,10 @@ public class MimeTypeValidator implements AttachmentValidator {
             return;
         }
 
-        if (!allowedTypes.contains(mimeType)) {
+        String normalizedMimeType = mimeType != null ? mimeType.toLowerCase() : "";
+        boolean allowed = allowedTypes.stream()
+                .anyMatch(t -> t.equalsIgnoreCase(normalizedMimeType));
+        if (!allowed) {
             throw new AttachmentValidationException(
                     String.format("不允許的 MIME type: %s（允許: %s）", mimeType, allowedTypes)
             );

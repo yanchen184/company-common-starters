@@ -3,8 +3,16 @@ package com.company.common.attachment.validation;
 import com.company.common.attachment.core.model.AttachmentUploadRequest;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Set;
+
 @Slf4j
 public class PathTraversalGuard implements AttachmentValidator {
+
+    private static final Set<String> BLOCKED_EXTENSIONS = Set.of(
+            ".exe", ".bat", ".cmd", ".sh", ".ps1", ".vbs", ".js", ".jar", ".war", ".class",
+            ".msi", ".dll", ".so", ".py", ".rb", ".php", ".asp", ".aspx", ".jsp", ".cgi",
+            ".com", ".scr", ".pif", ".hta", ".wsf", ".mjs"
+    );
 
     @Override
     public void validate(AttachmentUploadRequest request) {
@@ -24,14 +32,18 @@ public class PathTraversalGuard implements AttachmentValidator {
             throw new AttachmentValidationException("檔案名稱包含 null byte");
         }
 
-        // 副檔名 blocklist
-        String lowerFilename = filename.toLowerCase();
-        if (lowerFilename.endsWith(".exe") || lowerFilename.endsWith(".bat")
-                || lowerFilename.endsWith(".cmd") || lowerFilename.endsWith(".sh")
-                || lowerFilename.endsWith(".ps1") || lowerFilename.endsWith(".vbs")
-                || lowerFilename.endsWith(".js") || lowerFilename.endsWith(".jar")
-                || lowerFilename.endsWith(".war") || lowerFilename.endsWith(".class")) {
-            throw new AttachmentValidationException("不允許的副檔名: " + filename);
+        // 檢查 trailing dot（Windows 檔名攻擊）
+        String trimmedFilename = filename.trim();
+        if (trimmedFilename.endsWith(".")) {
+            throw new AttachmentValidationException("檔案名稱不得以句點結尾: " + filename);
+        }
+
+        // 副檔名 blocklist（檢查所有副檔名，防止雙重副檔名攻擊如 malware.exe.pdf）
+        String lowerFilename = trimmedFilename.toLowerCase();
+        for (String blocked : BLOCKED_EXTENSIONS) {
+            if (lowerFilename.endsWith(blocked) || lowerFilename.contains(blocked + ".")) {
+                throw new AttachmentValidationException("不允許的副檔名: " + filename);
+            }
         }
 
         log.debug("路徑穿越與副檔名驗證通過: {}", filename);

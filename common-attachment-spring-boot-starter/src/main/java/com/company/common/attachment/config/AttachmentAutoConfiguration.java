@@ -23,8 +23,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.scheduling.annotation.EnableAsync;
-
 import java.nio.file.Path;
 import java.util.List;
 
@@ -33,7 +31,6 @@ import java.util.List;
 @EnableConfigurationProperties(AttachmentProperties.class)
 @EntityScan(basePackages = "com.company.common.attachment.persistence.entity")
 @EnableJpaRepositories(basePackages = "com.company.common.attachment.persistence.repository")
-@EnableAsync
 public class AttachmentAutoConfiguration {
 
     // ========== Validators ==========
@@ -102,8 +99,9 @@ public class AttachmentAutoConfiguration {
     @ConditionalOnMissingBean(ImageProcessingService.class)
     public ImageProcessingService imageProcessingService(
             AttachmentStorageStrategy storageStrategy,
+            AttachmentRepository attachmentRepository,
             AttachmentProperties properties) {
-        return new ImageProcessingService(storageStrategy, properties);
+        return new ImageProcessingService(storageStrategy, attachmentRepository, properties);
     }
 
     // ========== Web Controller (optional) ==========
