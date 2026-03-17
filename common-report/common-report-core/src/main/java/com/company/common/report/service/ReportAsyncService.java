@@ -35,10 +35,12 @@ public class ReportAsyncService {
         try {
             logService.updateStatus(uuid, ReportStatus.PROCESSING, null);
             ReportResult result = reportService.generate(context);
-            logService.saveResult(uuid, result.getContent(), result.getContentType());
-            logService.updateStatus(uuid, ReportStatus.COMPLETED, null);
+            logService.completeReport(uuid, result.getContent(), result.getContentType());
             log.info("<-- generateAsync | uuid={}, COMPLETED", uuid);
         } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             log.error("<-- generateAsync | uuid={}, FAILED: {}", uuid, e.getMessage(), e);
             logService.updateStatus(uuid, ReportStatus.FAILED, e.getMessage());
         }

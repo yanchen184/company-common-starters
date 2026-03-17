@@ -64,6 +64,11 @@ public class EasyExcelReportEngine implements ReportEngine {
                     "Either templatePath or data must be provided for EasyExcel engine");
         }
 
+        // 檔案大小保護（50MB）
+        if (out.size() > 50 * 1024 * 1024) {
+            throw new IllegalStateException("Report file exceeds maximum allowed size: 50MB");
+        }
+
         String fileName = resolveFileName(context);
         String contentType = resolveContentType(context.getOutputFormat());
 

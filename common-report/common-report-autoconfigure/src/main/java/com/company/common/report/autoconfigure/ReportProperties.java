@@ -1,10 +1,13 @@
 package com.company.common.report.autoconfigure;
 
+import jakarta.validation.constraints.Min;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * 報表模組配置屬性
  */
+@Validated
 @ConfigurationProperties(prefix = "common.report")
 public class ReportProperties {
 
@@ -89,12 +92,15 @@ public class ReportProperties {
         private boolean enabled = true;
 
         /** 核心執行緒數 */
+        @Min(1)
         private int corePoolSize = 2;
 
         /** 最大執行緒數 */
+        @Min(1)
         private int maxPoolSize = 5;
 
         /** 佇列容量 */
+        @Min(1)
         private int queueCapacity = 100;
 
         public boolean isEnabled() {
@@ -139,6 +145,7 @@ public class ReportProperties {
         private boolean enabled = false;
 
         /** 保留天數 */
+        @Min(1)
         private int retentionDays = 90;
 
         public boolean isEnabled() {

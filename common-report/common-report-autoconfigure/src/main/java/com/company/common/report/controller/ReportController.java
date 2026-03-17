@@ -15,6 +15,8 @@ import com.company.common.response.exception.BusinessException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -31,11 +33,19 @@ import java.util.Set;
 
 /**
  * 報表產製與下載 Controller
+ *
+ * <p>注意：此 Controller 不包含權限控制。使用方應透過 Spring Security 配置
+ * 保護 /api/reports/** 端點，或在子類別中覆寫並加上 {@code @PreAuthorize}。
  */
 @Tag(name = "Report", description = "Report generation and download")
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
+
+    private static final Logger log = LoggerFactory.getLogger(ReportController.class);
+
+    private static final java.util.regex.Pattern UUID_PATTERN =
+        java.util.regex.Pattern.compile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
 
     private final ReportService reportService;
     private final ReportLogService logService;
@@ -43,7 +53,7 @@ public class ReportController {
 
     public ReportController(ReportService reportService,
                             ReportLogService logService,
-                            ReportAsyncService asyncService) {
+                            @org.springframework.lang.Nullable ReportAsyncService asyncService) {
         this.reportService = reportService;
         this.logService = logService;
         this.asyncService = asyncService;
@@ -84,6 +94,7 @@ public class ReportController {
     @Operation(summary = "查詢報表產製狀態")
     @GetMapping("/status/{uuid}")
     public ApiResponse<ReportStatusResponse> getStatus(@PathVariable String uuid) {
+        validateUuid(uuid);
         ReportLog reportLog = logService.findByUuid(uuid)
                 .orElseThrow(() -> BusinessException.notFound("Report not found: " + uuid));
         ReportStatusResponse response = new ReportStatusResponse(
@@ -103,7 +114,8 @@ public class ReportController {
     @Operation(summary = "下載報表檔案")
     @GetMapping("/download/{uuid}")
     public void download(@PathVariable String uuid,
-                         jakarta.servlet.http.HttpServletResponse response) throws Exception {
+                         jakarta.servlet.http.HttpServletResponse response) {
+        validateUuid(uuid);
         ReportLog reportLog = logService.findByUuid(uuid)
                 .orElseThrow(() -> BusinessException.notFound("Report not found: " + uuid));
 
@@ -125,8 +137,12 @@ public class ReportController {
         response.setHeader("Content-Disposition",
                 "attachment; filename=\"" + encodedFileName + "\"");
         response.setContentLength(content.length);
-        response.getOutputStream().write(content);
-        response.getOutputStream().flush();
+        try (var outputStream = response.getOutputStream()) {
+            outputStream.write(content);
+            outputStream.flush();
+        } catch (java.io.IOException e) {
+            log.warn("Download interrupted for uuid={}: {}", uuid, e.getMessage());
+        }
     }
 
     /**
@@ -136,6 +152,12 @@ public class ReportController {
     @GetMapping("/engines")
     public ApiResponse<Set<ReportEngineType>> getEngines() {
         return ApiResponse.ok(reportService.getAvailableEngines());
+    }
+
+    private void validateUuid(String uuid) {
+        if (uuid == null || !UUID_PATTERN.matcher(uuid).matches()) {
+            throw BusinessException.badRequest("Invalid UUID format");
+        }
     }
 
     // ===== Private helpers =====

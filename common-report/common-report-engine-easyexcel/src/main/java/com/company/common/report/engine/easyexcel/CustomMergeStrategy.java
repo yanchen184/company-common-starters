@@ -7,6 +7,9 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddress;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 自訂合併策略：相同值自動垂直合併
  *
@@ -25,6 +28,9 @@ public class CustomMergeStrategy extends AbstractMergeStrategy {
 
     /** 要合併的欄位索引 */
     private final int[] mergeColumnIndexes;
+
+    /** 每欄最後一個合併區域的快取，避免每次遍歷所有合併區域 */
+    private final Map<Integer, CellRangeAddress> lastMergeMap = new HashMap<>();
 
     /**
      * @param mergeColumnIndexes 要進行垂直合併的欄位索引（0-based）
@@ -50,31 +56,37 @@ public class CustomMergeStrategy extends AbstractMergeStrategy {
                 sheet.getRow(currentRowIndex - 1).getCell(currentColumnIndex));
 
         if (currentValue != null && currentValue.equals(previousValue)) {
-            // 檢查是否已有包含上一行的合併區域
-            boolean merged = false;
-            for (int i = 0; i < sheet.getNumMergedRegions(); i++) {
-                CellRangeAddress range = sheet.getMergedRegion(i);
-                if (range.getFirstColumn() == currentColumnIndex
-                        && range.getLastColumn() == currentColumnIndex
-                        && range.getLastRow() == currentRowIndex - 1) {
-                    // 擴展現有合併區域
-                    sheet.removeMergedRegion(i);
-                    range = new CellRangeAddress(
-                            range.getFirstRow(), currentRowIndex,
-                            currentColumnIndex, currentColumnIndex);
-                    sheet.addMergedRegion(range);
-                    merged = true;
-                    break;
-                }
-            }
-            if (!merged) {
+            CellRangeAddress lastRange = lastMergeMap.get(currentColumnIndex);
+            if (lastRange != null && lastRange.getLastRow() == currentRowIndex - 1) {
+                // 擴展現有合併區域：移除舊的，建立新的
+                sheet.removeMergedRegion(findMergedRegionIndex(sheet, lastRange));
+                CellRangeAddress newRange = new CellRangeAddress(
+                        lastRange.getFirstRow(), currentRowIndex,
+                        currentColumnIndex, currentColumnIndex);
+                sheet.addMergedRegion(newRange);
+                lastMergeMap.put(currentColumnIndex, newRange);
+            } else {
                 // 建立新的合併區域
-                CellRangeAddress range = new CellRangeAddress(
+                CellRangeAddress newRange = new CellRangeAddress(
                         currentRowIndex - 1, currentRowIndex,
                         currentColumnIndex, currentColumnIndex);
-                sheet.addMergedRegion(range);
+                sheet.addMergedRegion(newRange);
+                lastMergeMap.put(currentColumnIndex, newRange);
             }
         }
+    }
+
+    private int findMergedRegionIndex(Sheet sheet, CellRangeAddress target) {
+        for (int i = sheet.getNumMergedRegions() - 1; i >= 0; i--) {
+            CellRangeAddress range = sheet.getMergedRegion(i);
+            if (range.getFirstRow() == target.getFirstRow()
+                    && range.getLastRow() == target.getLastRow()
+                    && range.getFirstColumn() == target.getFirstColumn()
+                    && range.getLastColumn() == target.getLastColumn()) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private boolean shouldMerge(int columnIndex) {

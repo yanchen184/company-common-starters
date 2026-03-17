@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -101,6 +102,36 @@ public class ReportLogService {
                 .map(ReportLogBlob::getFileBlob);
     }
 
+    /**
+     * 完成報表：在同一事務中儲存 BLOB 並更新狀態為 COMPLETED
+     */
+    @Transactional
+    public void completeReport(String uuid, byte[] content, String contentType) {
+        if (content == null || content.length == 0) {
+            throw new IllegalArgumentException("Report content cannot be null or empty");
+        }
+        ReportLog reportLog = logRepo.findByUuid(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("ReportLog not found: " + uuid));
+
+        // 狀態檢查
+        validateStatusTransition(reportLog.getStatus(), ReportStatus.COMPLETED);
+
+        // 儲存 BLOB
+        ReportLogBlob blob = new ReportLogBlob();
+        blob.setReportLog(reportLog);
+        blob.setFileBlob(content);
+        blobRepo.save(blob);
+
+        // 更新狀態 + contentType
+        reportLog.setStatus(ReportStatus.COMPLETED);
+        reportLog.setContentType(contentType);
+        reportLog.setEndTime(LocalDateTime.now());
+        reportLog.setBlob(blob);
+        logRepo.save(reportLog);
+
+        log.info("<-- completeReport | uuid={}, size={}bytes", uuid, content.length);
+    }
+
     private void validateStatusTransition(ReportStatus from, ReportStatus to) {
         if (from == ReportStatus.COMPLETED || from == ReportStatus.FAILED) {
             throw new IllegalStateException(
@@ -118,7 +149,11 @@ public class ReportLogService {
     @Transactional
     public void cleanupOlderThan(int days) {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
-        logRepo.deleteByCreatedDateBeforeAndStatus(cutoff, ReportStatus.COMPLETED);
+        // 先刪 blob 再刪 log（外鍵約束）
+        for (ReportStatus status : List.of(ReportStatus.COMPLETED, ReportStatus.FAILED)) {
+            logRepo.deleteBlobsByCreatedDateBeforeAndStatus(cutoff, status);
+            logRepo.deleteLogsByCreatedDateBeforeAndStatus(cutoff, status);
+        }
         log.info("--> cleanupOlderThan | days={}, cutoff={}", days, cutoff);
     }
 }

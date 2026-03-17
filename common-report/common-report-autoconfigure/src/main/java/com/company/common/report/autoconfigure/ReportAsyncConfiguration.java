@@ -34,6 +34,9 @@ public class ReportAsyncConfiguration {
         executor.setMaxPoolSize(properties.getAsync().getMaxPoolSize());
         executor.setQueueCapacity(properties.getAsync().getQueueCapacity());
         executor.setThreadNamePrefix("report-async-");
+        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(60);
         return executor;
     }
 }

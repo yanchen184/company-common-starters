@@ -27,6 +27,7 @@ public class ReportLogBlob {
 
     /** 檔案二進位內容 */
     @Lob
+    @Column(name = "file_blob", columnDefinition = "VARBINARY(MAX)")
     private byte[] fileBlob;
 
     /** 錯誤日誌 */

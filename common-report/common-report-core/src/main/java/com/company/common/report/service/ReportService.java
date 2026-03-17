@@ -27,7 +27,14 @@ public class ReportService {
 
     public ReportService(List<ReportEngine> engines) {
         this.engineMap = engines.stream()
-                .collect(Collectors.toMap(ReportEngine::getType, Function.identity()));
+                .collect(Collectors.toMap(
+                        ReportEngine::getType,
+                        Function.identity(),
+                        (existing, duplicate) -> {
+                            throw new IllegalStateException(
+                                    "Duplicate ReportEngine registered for type: " + existing.getType());
+                        }
+                ));
     }
 
     /**
@@ -54,7 +61,10 @@ public class ReportService {
     }
 
     private void validateTemplatePath(String templatePath) {
-        if (templatePath != null && (templatePath.contains("..") || templatePath.startsWith("/"))) {
+        if (templatePath == null) return;
+        String normalized = templatePath.replace('\\', '/');
+        if (normalized.contains("..") || normalized.startsWith("/")
+                || normalized.contains("://") || normalized.contains("%")) {
             throw BusinessException.badRequest("Invalid template path: path traversal not allowed");
         }
     }

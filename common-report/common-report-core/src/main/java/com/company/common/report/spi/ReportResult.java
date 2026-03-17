@@ -1,7 +1,10 @@
 package com.company.common.report.spi;
 
 /**
- * 報表產製結果
+ * 報表產製結果。
+ *
+ * <p>注意：content 陣列不做防禦性複製以避免記憶體開銷。
+ * 呼叫方不得修改回傳的 content 陣列。
  */
 public class ReportResult {
 

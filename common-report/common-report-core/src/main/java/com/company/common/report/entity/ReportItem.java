@@ -1,6 +1,7 @@
 package com.company.common.report.entity;
 
 import com.company.common.jpa.entity.AuditableEntity;
+import com.company.common.report.enums.OutputFormat;
 import com.company.common.report.enums.ReportEngineType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -35,7 +36,8 @@ public class ReportItem extends AuditableEntity {
     private ReportEngineType engineType;
 
     /** 預設輸出格式 */
-    private String outputFormat;
+    @Enumerated(EnumType.STRING)
+    private OutputFormat outputFormat;
 
     /** 報表描述 */
     @Column(length = 1000)
@@ -76,11 +78,11 @@ public class ReportItem extends AuditableEntity {
         this.engineType = engineType;
     }
 
-    public String getOutputFormat() {
+    public OutputFormat getOutputFormat() {
         return outputFormat;
     }
 
-    public void setOutputFormat(String outputFormat) {
+    public void setOutputFormat(OutputFormat outputFormat) {
         this.outputFormat = outputFormat;
     }
 
