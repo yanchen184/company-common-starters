@@ -18,11 +18,13 @@
     <properties>
         <easyexcel.version>4.0.1</easyexcel.version>
         <poi.version>5.3.0</poi.version>
+        <xdocreport.version>2.1.0</xdocreport.version>
     </properties>
 
     <modules>
         <module>common-report-core</module>
         <module>common-report-engine-easyexcel</module>
+        <module>common-report-engine-xdocreport</module>
         <module>common-report-autoconfigure</module>
         <module>common-report-spring-boot-starter</module>
         <module>common-report-test</module>
@@ -38,6 +40,11 @@
             <dependency>
                 <groupId>com.company.common</groupId>
                 <artifactId>common-report-engine-easyexcel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-report-engine-xdocreport</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -59,6 +66,22 @@
                 <groupId>org.apache.poi</groupId>
                 <artifactId>poi-ooxml</artifactId>
                 <version>${poi.version}</version>
+            </dependency>
+            <!-- xDocReport -->
+            <dependency>
+                <groupId>fr.opensagres.xdocreport</groupId>
+                <artifactId>fr.opensagres.xdocreport.document.docx</artifactId>
+                <version>${xdocreport.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>fr.opensagres.xdocreport</groupId>
+                <artifactId>fr.opensagres.xdocreport.template.velocity</artifactId>
+                <version>${xdocreport.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>fr.opensagres.xdocreport</groupId>
+                <artifactId>fr.opensagres.xdocreport.converter.docx.xwpf</artifactId>
+                <version>${xdocreport.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

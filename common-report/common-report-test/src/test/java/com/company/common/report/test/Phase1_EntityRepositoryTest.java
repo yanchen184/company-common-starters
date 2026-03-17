@@ -78,7 +78,7 @@ class Phase1_EntityRepositoryTest {
             item.setName("monthly-sales");
             item.setTemplatePath("templates/monthly-sales.xlsx");
             item.setEngineType(ReportEngineType.EASYEXCEL);
-            item.setOutputFormat("XLSX");
+            item.setOutputFormat(com.company.common.report.enums.OutputFormat.XLSX);
             item.setDescription("Monthly sales report");
             item.setEnabled(true);
             itemRepo.save(item);

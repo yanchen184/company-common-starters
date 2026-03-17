@@ -61,7 +61,9 @@ public class ReportService {
     }
 
     private void validateTemplatePath(String templatePath) {
-        if (templatePath == null) return;
+        if (templatePath == null) {
+            return;
+        }
         String normalized = templatePath.replace('\\', '/');
         if (normalized.contains("..") || normalized.startsWith("/")
                 || normalized.contains("://") || normalized.contains("%")) {

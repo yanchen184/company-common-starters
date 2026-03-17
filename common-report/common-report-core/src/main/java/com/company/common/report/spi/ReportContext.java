@@ -94,7 +94,10 @@ public class ReportContext {
         public Builder engineType(ReportEngineType engineType) { this.engineType = engineType; return this; }
         public Builder outputFormat(OutputFormat outputFormat) { this.outputFormat = outputFormat; return this; }
         public Builder fileName(String fileName) { this.fileName = fileName; return this; }
-        public Builder parameters(Map<String, Object> parameters) { this.parameters = parameters != null ? new HashMap<>(parameters) : new HashMap<>(); return this; }
+        public Builder parameters(Map<String, Object> parameters) {
+            this.parameters = parameters != null ? new HashMap<>(parameters) : new HashMap<>();
+            return this;
+        }
         public Builder parameter(String key, Object value) { this.parameters.put(key, value); return this; }
         public Builder data(List<?> data) { this.data = data; return this; }
 
