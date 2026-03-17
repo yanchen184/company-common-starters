@@ -4,6 +4,10 @@ import com.company.common.security.autoconfigure.CareSecurityProperties;
 import com.company.common.security.spi.CaptchaVerifier;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
+
 import javax.imageio.ImageIO;
 import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
@@ -18,9 +22,11 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -31,11 +37,13 @@ import java.util.UUID;
  */
 public class CaptchaService implements CaptchaVerifier {
 
+    private static final Logger log = LoggerFactory.getLogger(CaptchaService.class);
     private static final String REDIS_KEY_PREFIX = "captcha:";
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final String AUDIO_RESOURCE_PATH = "captcha/audio/";
 
-    /** 每個字元對應的音訊頻率（Hz） */
-    private static final Map<Character, Double> CHAR_FREQ_MAP = buildCharFreqMap();
+    /** 預錄的中文數字語音 WAV（0-9），啟動時載入到記憶體 */
+    private final Map<Character, byte[]> digitAudioCache = new HashMap<>();
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final CareSecurityProperties.Captcha config;
@@ -44,6 +52,35 @@ public class CaptchaService implements CaptchaVerifier {
                           CareSecurityProperties.Captcha config) {
         this.redisTemplate = redisTemplate;
         this.config = config;
+        if (config.isAudioEnabled()) {
+            loadDigitAudio();
+        }
+    }
+
+    /** 載入預錄的語音檔到記憶體（0-9 數字 + a-z 英文字母） */
+    private void loadDigitAudio() {
+        // 載入 0-9
+        for (char c = '0'; c <= '9'; c++) {
+            loadOneAudio(c);
+        }
+        // 載入 a-z（檔名為小寫，查詢時統一轉小寫）
+        for (char c = 'a'; c <= 'z'; c++) {
+            loadOneAudio(c);
+        }
+        log.info("CAPTCHA audio loaded: {} characters", digitAudioCache.size());
+    }
+
+    private void loadOneAudio(char c) {
+        String path = AUDIO_RESOURCE_PATH + c + ".wav";
+        try {
+            ClassPathResource resource = new ClassPathResource(path);
+            try (InputStream is = resource.getInputStream()) {
+                digitAudioCache.put(c, is.readAllBytes());
+                log.debug("Loaded CAPTCHA audio: {}", path);
+            }
+        } catch (IOException e) {
+            log.warn("Failed to load CAPTCHA audio: {}", path, e);
+        }
     }
 
     public record CaptchaResult(String captchaId, String imageBase64) {}
@@ -87,7 +124,7 @@ public class CaptchaService implements CaptchaVerifier {
 
     /**
      * Generate audio representation of the CAPTCHA code as WAV base64.
-     * Each character is rendered as a beep tone with a unique frequency.
+     * Each digit is spoken as an English word (e.g., "one", "two") using formant synthesis.
      *
      * @param captchaId the CAPTCHA ID (code is read from Redis without deleting)
      * @return WAV base64 string, or null if captchaId not found
@@ -191,105 +228,47 @@ public class CaptchaService implements CaptchaVerifier {
     }
 
     /**
-     * 用 javax.sound.sampled 產生 WAV 音訊：
-     * 每個字元用不同頻率的 beep 音，每字元 0.5 秒，字元間間隔 0.2 秒。
+     * 拼接預錄的中文數字語音 WAV：
+     * 讀取每個字元對應的 WAV PCM data，中間插入 300ms 靜音，最後輸出完整 WAV。
      */
     private String renderAudio(String code) {
         float sampleRate = 16000f;
         int bitsPerSample = 16;
-        double charDuration = 0.5;   // 每個字元 0.5 秒
-        double gapDuration = 0.2;    // 字元間 0.2 秒間隔
-        double totalDuration = code.length() * charDuration + (code.length() - 1) * gapDuration;
-        int totalSamples = (int) (totalDuration * sampleRate);
+        int gapSamples = (int) (0.3 * sampleRate); // 300ms 靜音
+        byte[] gapBytes = new byte[gapSamples * 2]; // 16-bit = 2 bytes/sample
 
-        byte[] audioData = new byte[totalSamples * 2]; // 16-bit = 2 bytes per sample
-
-        for (int ci = 0; ci < code.length(); ci++) {
-            char ch = Character.toUpperCase(code.charAt(ci));
-            double freq = CHAR_FREQ_MAP.getOrDefault(ch, 440.0);
-
-            int startSample = (int) ((ci * (charDuration + gapDuration)) * sampleRate);
-            int charSamples = (int) (charDuration * sampleRate);
-
-            for (int s = 0; s < charSamples; s++) {
-                int sampleIndex = startSample + s;
-                if (sampleIndex >= totalSamples) {
-                    break;
+        try (ByteArrayOutputStream pcmOut = new ByteArrayOutputStream()) {
+            for (int i = 0; i < code.length(); i++) {
+                char ch = Character.toLowerCase(code.charAt(i));
+                byte[] wavFile = digitAudioCache.get(ch);
+                if (wavFile == null) {
+                    // 沒有對應音檔，插入靜音
+                    pcmOut.write(gapBytes);
+                    continue;
                 }
-
-                // 正弦波，振幅 0.8（避免破音）
-                double t = s / sampleRate;
-                double value = 0.8 * Math.sin(2.0 * Math.PI * freq * t);
-
-                // 套用淡入淡出避免爆音（前後 5% 的 samples）
-                int fadeLen = charSamples / 20;
-                if (s < fadeLen) {
-                    value *= (double) s / fadeLen;
-                } else if (s > charSamples - fadeLen) {
-                    value *= (double) (charSamples - s) / fadeLen;
+                // WAV header 固定 44 bytes，之後是 PCM data
+                int headerSize = 44;
+                if (wavFile.length > headerSize) {
+                    pcmOut.write(wavFile, headerSize, wavFile.length - headerSize);
                 }
-
-                short sample = (short) (value * Short.MAX_VALUE);
-                // Little-endian 16-bit
-                audioData[sampleIndex * 2] = (byte) (sample & 0xFF);
-                audioData[sampleIndex * 2 + 1] = (byte) ((sample >> 8) & 0xFF);
+                // 字元間加靜音（最後一個不加）
+                if (i < code.length() - 1) {
+                    pcmOut.write(gapBytes);
+                }
             }
-        }
 
-        // 寫成 WAV 格式
-        AudioFormat format = new AudioFormat(sampleRate, bitsPerSample, 1, true, false);
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(audioData);
-             AudioInputStream ais = new AudioInputStream(bais, format, totalSamples);
-             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            byte[] allPcm = pcmOut.toByteArray();
+            int totalSamples = allPcm.length / 2;
 
-            AudioSystem.write(ais, AudioFileFormat.Type.WAVE, baos);
-            return Base64.getEncoder().encodeToString(baos.toByteArray());
+            AudioFormat format = new AudioFormat(sampleRate, bitsPerSample, 1, true, false);
+            try (ByteArrayInputStream bais = new ByteArrayInputStream(allPcm);
+                 AudioInputStream ais = new AudioInputStream(bais, format, totalSamples);
+                 ByteArrayOutputStream wavOut = new ByteArrayOutputStream()) {
+                AudioSystem.write(ais, AudioFileFormat.Type.WAVE, wavOut);
+                return Base64.getEncoder().encodeToString(wavOut.toByteArray());
+            }
         } catch (IOException e) {
             throw new IllegalStateException("Failed to render CAPTCHA audio", e);
         }
-    }
-
-    /** 建立字元 -> 頻率的對應表 */
-    private static Map<Character, Double> buildCharFreqMap() {
-        return Map.ofEntries(
-                // 數字 0-9（C4 到 E5 的自然音階）
-                Map.entry('0', 261.63),  // C4
-                Map.entry('1', 293.66),  // D4
-                Map.entry('2', 329.63),  // E4
-                Map.entry('3', 349.23),  // F4
-                Map.entry('4', 392.00),  // G4
-                Map.entry('5', 440.00),  // A4
-                Map.entry('6', 493.88),  // B4
-                Map.entry('7', 523.25),  // C5
-                Map.entry('8', 587.33),  // D5
-                Map.entry('9', 659.25),  // E5
-                // 英文字母 A-Z（不同頻率，避免重疊）
-                Map.entry('A', 440.00),
-                Map.entry('B', 493.88),
-                Map.entry('C', 523.25),
-                Map.entry('D', 587.33),
-                Map.entry('E', 659.25),
-                Map.entry('F', 698.46),
-                Map.entry('G', 783.99),
-                Map.entry('H', 830.61),
-                Map.entry('I', 880.00),
-                Map.entry('J', 932.33),
-                Map.entry('K', 987.77),
-                Map.entry('L', 1046.50),
-                Map.entry('M', 1108.73),
-                Map.entry('N', 1174.66),
-                Map.entry('O', 1244.51),
-                Map.entry('P', 1318.51),
-                Map.entry('Q', 1396.91),
-                Map.entry('R', 1479.98),
-                Map.entry('S', 1567.98),
-                Map.entry('T', 1661.22),
-                Map.entry('U', 1760.00),
-                Map.entry('V', 1864.66),
-                Map.entry('W', 1975.53),
-                Map.entry('X', 2093.00),
-                Map.entry('Y', 2217.46),
-                Map.entry('Z', 2349.32)
-        );
     }
 }

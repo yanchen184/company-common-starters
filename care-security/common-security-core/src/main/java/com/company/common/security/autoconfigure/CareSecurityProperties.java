@@ -111,11 +111,17 @@ public class CareSecurityProperties {
     }
 
     public static class Captcha {
+        private static final String DIGITS_ONLY = "0123456789";
+        /** 排除易混淆的 I/O */
+        private static final String DIGITS_AND_LETTERS = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+
         private boolean enabled = false;
         private int length = 4;
         private int expireSeconds = 300;
-        /** 驗證碼字元集，預設純數字（向下相容） */
-        private String chars = "0123456789";
+        /** 驗證碼字元集，預設依 includeLetters 自動決定；手動設定 chars 會覆蓋 */
+        private String chars;
+        /** 是否包含英文字母（預設 false = 純數字） */
+        private boolean includeLetters = false;
         /** 圖片寬度（px） */
         private int width = 160;
         /** 圖片高度（px） */
@@ -131,8 +137,15 @@ public class CareSecurityProperties {
         public void setLength(int length) { this.length = length; }
         public int getExpireSeconds() { return expireSeconds; }
         public void setExpireSeconds(int expireSeconds) { this.expireSeconds = expireSeconds; }
-        public String getChars() { return chars; }
+        public String getChars() {
+            if (chars != null) {
+                return chars;
+            }
+            return includeLetters ? DIGITS_AND_LETTERS : DIGITS_ONLY;
+        }
         public void setChars(String chars) { this.chars = chars; }
+        public boolean isIncludeLetters() { return includeLetters; }
+        public void setIncludeLetters(boolean includeLetters) { this.includeLetters = includeLetters; }
         public int getWidth() { return width; }
         public void setWidth(int width) { this.width = width; }
         public int getHeight() { return height; }
