@@ -26,6 +26,10 @@ common-report/
 │   ├── CustomMergeStrategy.java         相同值自動垂直合併
 │   └── EasyExcelAutoConfiguration.java  @ConditionalOnClass 自動裝配
 │
+├── common-report-engine-xdocreport/     # xDocReport 引擎（可選）
+│   ├── XDocReportEngine.java            implements ReportEngine
+│   └── XDocReportAutoConfiguration.java @ConditionalOnClass 自動裝配
+│
 ├── common-report-autoconfigure/         # AutoConfiguration + Controller + DTO + Properties
 │   ├── ReportAutoConfiguration.java     核心 Bean 註冊
 │   ├── ReportAsyncConfiguration.java    @EnableAsync + ThreadPool
@@ -168,9 +172,9 @@ public class MyCustomEngine implements ReportEngine {
 | 引擎模組 | ReportEngineType | 支援格式 | 適合場景 |
 |---------|------------------|---------|---------|
 | `common-report-engine-easyexcel` | `EASYEXCEL` | XLSX, XLS, CSV | 資料匯出、範本填充 |
-| `common-report-engine-jasper` | `JASPER` | PDF, XLS, HTML | 複雜版面報表（待建） |
-| `common-report-engine-xdocreport` | `XDOCREPORT` | DOCX, ODT, PDF | Word 套表（待建） |
-| `common-report-engine-export` | `EXPORT` | XLSX, CSV, ODS, XML | 簡易列表匯出（待建） |
+| `common-report-engine-xdocreport` | `XDOCREPORT` | DOCX, ODT, PDF | Word 套表（合約、公文） |
+| `common-report-engine-jasper` | `JASPER` | PDF, XLS, HTML | 複雜版面報表（待確認需求） |
+| `common-report-engine-export` | `EXPORT` | XLSX, CSV, ODS, XML | 簡易列表匯出（待確認需求） |
 
 ## 資料庫 Entity
 
@@ -270,6 +274,59 @@ ReportContext context = ReportContext.builder()
 | 業務部 | 陳大文 | 70,000 |
 |        | 林志偉 | 62,000 |  ← 「業務部」自動合併
 ```
+
+## xDocReport 引擎功能
+
+用 Word 範本（`.docx`）+ Velocity 變數替換，產出 Word 或 PDF。適合合約、公文、通知書。
+
+### 引入依賴
+
+```xml
+<dependency>
+    <groupId>com.company.common</groupId>
+    <artifactId>common-report-engine-xdocreport</artifactId>
+</dependency>
+```
+
+### Word 範本
+
+建立 `.docx` 範本，用 Velocity 語法寫變數：
+
+```
+合約書
+
+甲方：$clientName
+日期：$contractDate
+
+明細：
+#foreach($item in $items)
+  - $item.name：$item.amount 元
+#end
+```
+
+### 使用方式
+
+```java
+ReportContext context = ReportContext.builder()
+        .engineType(ReportEngineType.XDOCREPORT)
+        .outputFormat(OutputFormat.DOCX)   // 或 OutputFormat.PDF
+        .templatePath("templates/contract.docx")
+        .parameter("clientName", "王小明")
+        .parameter("contractDate", "2026-03-17")
+        .data(itemList)                    // 範本裡用 $items 存取
+        .fileName("合約書.docx")
+        .build();
+
+ReportResult result = reportService.generate(context);
+```
+
+### 支援格式
+
+| OutputFormat | 說明 |
+|-------------|------|
+| `DOCX` | 直接輸出 Word（不轉換） |
+| `PDF` | Word → PDF（需要 xdocreport converter） |
+| `ODT` | OpenDocument Text |
 
 ## 注意事項
 
