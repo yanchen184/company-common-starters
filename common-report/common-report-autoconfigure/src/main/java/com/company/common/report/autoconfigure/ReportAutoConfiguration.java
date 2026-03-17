@@ -11,15 +11,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import java.util.List;
 
 /**
- * 報表模組自動配置
+ * 報表模組自動配置。
+ *
+ * 注意：@EnableJpaRepositories 是覆蓋式的。
+ * 如果使用方自己也有 JPA Repository，需要在 @SpringBootApplication 上加：
+ * {@code @EnableJpaRepositories(basePackages = "your.app.repository")}
  */
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "common.report", name = "enabled", havingValue = "true", matchIfMissing = true)
