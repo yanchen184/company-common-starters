@@ -1,7 +1,6 @@
 package com.company.common.response.exception;
 
 import com.company.common.response.code.CommonErrorCode;
-import com.company.common.response.code.UserErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

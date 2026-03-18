@@ -33,6 +33,9 @@ public class PasswordEncoderConfig {
 
         @Override
         public String encode(CharSequence rawPassword) {
+            if (rawPassword == null) {
+                throw new IllegalArgumentException("rawPassword cannot be null");
+            }
             String hash = Password.hash(rawPassword.toString())
                     .with(BCRYPT)
                     .getResult();
@@ -44,6 +47,9 @@ public class PasswordEncoderConfig {
 
         @Override
         public boolean matches(CharSequence rawPassword, String encodedPassword) {
+            if (rawPassword == null) {
+                return false;
+            }
             return Password.check(rawPassword.toString(), encodedPassword != null ? encodedPassword : "")
                     .with(BCRYPT);
         }

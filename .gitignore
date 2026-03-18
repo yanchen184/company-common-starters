@@ -19,3 +19,8 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# IntelliJ Inspect Code reports
+index.html
+script.js
+styles.css

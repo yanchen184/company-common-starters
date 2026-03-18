@@ -64,6 +64,7 @@ class GlobalExceptionHandlerTest {
             ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(ex, request);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getCode()).isEqualTo("CUSTOM_001");
         }
     }
@@ -80,6 +81,7 @@ class GlobalExceptionHandlerTest {
             ResponseEntity<ApiResponse<Void>> response = handler.handleIllegalArgument(ex, request);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getCode()).isEqualTo(CommonErrorCode.BAD_REQUEST.getCode());
             assertThat(response.getBody().getMessage()).isEqualTo("id 不可為負數");
         }
@@ -97,6 +99,7 @@ class GlobalExceptionHandlerTest {
             ResponseEntity<ApiResponse<Void>> response = handler.handleException(ex, request);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getCode()).isEqualTo(CommonErrorCode.INTERNAL_ERROR.getCode());
             // 不暴露原始錯誤訊息，使用通用訊息
             assertThat(response.getBody().getMessage()).isEqualTo(CommonErrorCode.INTERNAL_ERROR.getMessage());

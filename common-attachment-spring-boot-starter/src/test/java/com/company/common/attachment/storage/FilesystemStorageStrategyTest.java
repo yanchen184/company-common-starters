@@ -48,7 +48,11 @@ class FilesystemStorageStrategyTest {
 
         strategy.delete(result.storedFilename());
 
-        assertThatThrownBy(() -> strategy.load(result.storedFilename()))
+        assertThatThrownBy(() -> {
+            try (InputStream ignored = strategy.load(result.storedFilename())) {
+                // 預期 load() 拋出 IOException，不會執行到這裡
+            }
+        })
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("不存在");
     }

@@ -125,7 +125,8 @@ class Phase5_ReportControllerTest {
         @Test
         @DisplayName("download non-existent uuid returns 404")
         void downloadNonExistent() throws Exception {
-            mockMvc.perform(get("/api/reports/download/non-existent-uuid"))
+            // 用合法的 UUID 格式但不存在的值（避免被 UUID 格式驗證擋下回 400）
+            mockMvc.perform(get("/api/reports/download/00000000-0000-0000-0000-000000000000"))
                     .andExpect(status().isNotFound());
         }
 

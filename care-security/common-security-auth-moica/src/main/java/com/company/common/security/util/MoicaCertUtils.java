@@ -397,7 +397,7 @@ public class MoicaCertUtils {
      *
      * @return true if revoked, false if not revoked
      */
-    private boolean checkCrl() throws Exception {
+    private boolean checkCrl() {
         // 1. Check local CRL files first (TTL-cached reads, so updated files are picked up)
         for (String crlPath : localCrlPaths) {
             try {

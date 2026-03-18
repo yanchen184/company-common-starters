@@ -26,6 +26,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -179,8 +180,10 @@ class AttachmentIntegrationTest {
             assertThat(downloaded.originalFilename()).isEqualTo("data.txt");
             assertThat(downloaded.fileSize()).isEqualTo(originalContent.length);
 
-            byte[] downloadedContent = downloaded.inputStream().readAllBytes();
-            assertThat(downloadedContent).isEqualTo(originalContent);
+            try (InputStream is = downloaded.inputStream()) {
+                byte[] downloadedContent = is.readAllBytes();
+                assertThat(downloadedContent).isEqualTo(originalContent);
+            }
         }
 
         @Test

@@ -2,13 +2,16 @@ package com.company.common.log.config;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.SpringApplication;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.PropertySource;
 import org.springframework.mock.env.MockEnvironment;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * LogEnvironmentPostProcessor 行為驗證
@@ -26,7 +29,7 @@ class LogEnvironmentPostProcessorTest {
     void 未設定pattern時自動注入預設pattern() {
         MockEnvironment env = new MockEnvironment();
 
-        processor.postProcessEnvironment(env, null);
+        processor.postProcessEnvironment(env, mock(SpringApplication.class));
 
         String pattern = env.getProperty("logging.pattern.console");
         assertThat(pattern).isNotNull();
@@ -45,7 +48,7 @@ class LogEnvironmentPostProcessorTest {
         String customPattern = "%d{yyyy-MM-dd} %msg%n";
         env.setProperty("logging.pattern.console", customPattern);
 
-        processor.postProcessEnvironment(env, null);
+        processor.postProcessEnvironment(env, mock(SpringApplication.class));
 
         assertThat(env.getProperty("logging.pattern.console")).isEqualTo(customPattern);
     }
@@ -61,7 +64,7 @@ class LogEnvironmentPostProcessorTest {
     void 注入的PropertySource名稱正確() {
         MockEnvironment env = new MockEnvironment();
 
-        processor.postProcessEnvironment(env, null);
+        processor.postProcessEnvironment(env, mock(SpringApplication.class));
 
         assertThat(env.getPropertySources().contains("commonLogDefaults")).isTrue();
     }
@@ -74,11 +77,15 @@ class LogEnvironmentPostProcessorTest {
         env.getPropertySources().addFirst(
                 new MapPropertySource("custom", Map.of("some.key", "value")));
 
-        processor.postProcessEnvironment(env, null);
+        processor.postProcessEnvironment(env, mock(SpringApplication.class));
 
         // commonLogDefaults 應在 custom 之後（優先序更低）
         var sources = env.getPropertySources();
-        assertThat(sources.precedenceOf(sources.get("commonLogDefaults")))
-                .isGreaterThan(sources.precedenceOf(sources.get("custom")));
+        PropertySource<?> logDefaults = sources.get("commonLogDefaults");
+        PropertySource<?> custom = sources.get("custom");
+        assertThat(logDefaults).as("commonLogDefaults should exist").isNotNull();
+        assertThat(custom).as("custom should exist").isNotNull();
+        assertThat(sources.precedenceOf(logDefaults))
+                .isGreaterThan(sources.precedenceOf(custom));
     }
 }
