@@ -41,7 +41,10 @@ public class AttachmentService {
     @Transactional
     public AttachmentUploadResponse upload(AttachmentUploadRequest request) throws IOException {
         // 先讀成 byte[]，避免 Tika 偵測後 stream 被消耗導致存檔內容截斷
-        byte[] content = request.inputStream().readAllBytes();
+        byte[] content;
+        try (var inputStream = request.inputStream()) {
+            content = inputStream.readAllBytes();
+        }
         long actualSize = content.length;
 
         // 用 Tika 偵測真實 MIME type（而非信任 client 提供的 contentType）

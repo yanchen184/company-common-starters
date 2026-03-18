@@ -38,9 +38,6 @@ public class ReportAsyncService {
             logService.completeReport(uuid, result.getContent(), result.getContentType());
             log.info("<-- generateAsync | uuid={}, COMPLETED", uuid);
         } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
             log.error("<-- generateAsync | uuid={}, FAILED: {}", uuid, e.getMessage(), e);
             logService.updateStatus(uuid, ReportStatus.FAILED, e.getMessage());
         }

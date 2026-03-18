@@ -53,7 +53,7 @@ public class ReportController {
 
     public ReportController(ReportService reportService,
                             ReportLogService logService,
-                            @org.springframework.lang.Nullable ReportAsyncService asyncService) {
+                            ReportAsyncService asyncService) {
         this.reportService = reportService;
         this.logService = logService;
         this.asyncService = asyncService;

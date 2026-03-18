@@ -2,7 +2,6 @@ package com.company.common.attachment.processing;
 
 import com.company.common.attachment.config.AttachmentProperties;
 import com.company.common.attachment.event.AttachmentUploadedEvent;
-import com.company.common.attachment.persistence.entity.AttachmentEntity;
 import com.company.common.attachment.persistence.repository.AttachmentRepository;
 import com.company.common.attachment.storage.AttachmentStorageStrategy;
 import lombok.RequiredArgsConstructor;
