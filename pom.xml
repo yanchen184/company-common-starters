@@ -27,6 +27,8 @@
         <module>common-report</module>
         <!-- 通知模組 -->
         <module>common-notification-spring-boot-starter</module>
+        <!-- 業務級 Starter -->
+        <module>business/common-signature-spring-boot-starter</module>
     </modules>
 
     <properties>
@@ -118,6 +120,13 @@
             <dependency>
                 <groupId>com.company.common</groupId>
                 <artifactId>common-attachment-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- ========== Business Starters ========== -->
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-signature-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

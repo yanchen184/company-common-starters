@@ -27,8 +27,11 @@
 | `common-response-spring-boot-starter` | 統一回應 | 自動包裝 `ApiResponse`、全局異常處理、錯誤碼體系 |
 | `common-jpa-spring-boot-starter` | JPA 通用 | 自動審計（建立/修改時間+操作人）、軟刪除 |
 | `common-attachment-spring-boot-starter` | 附件管理 | 檔案上傳/下載、Tika 類型偵測、DB/檔案系統雙模式 |
-| `common-report-spring-boot-starter` | 報表產製 | 多引擎（EasyExcel + xDocReport）、非同步產製、審計記錄 |
+| `common-report-spring-boot-starter` | 報表產製 | 多引擎（EasyExcel + xDocReport + JasperReports）、非同步產製、審計記錄 |
+| `common-notification-spring-boot-starter` | 通知系統 | 多通道（Email + WebSocket）、排程發送、失敗重試 |
 | `care-security` | 安全模組 | JWT 認證、RBAC、LDAP、OTP、CAPTCHA、自然人憑證 |
+| **業務級 Starter** | | |
+| `common-signature-spring-boot-starter` | 電子簽名板 | Canvas JSON 存儲 + 附件圖片管理，依賴 attachment |
 
 ### 技術棧
 
@@ -277,7 +280,7 @@ care:
 
 從 wez-grails5（42 個 Grails 模組）遷移到 Spring Boot Starter 的進度：
 
-### 已完成（11 個）
+### 已完成（13 個）
 
 | Grails 模組 | Spring Boot 對應 |
 |---|---|
@@ -292,6 +295,8 @@ care:
 | 統一回應/例外處理 | `common-response-spring-boot-starter` |
 | `wez-attachment` | `common-attachment-spring-boot-starter` |
 | `wez-report` + 4 引擎 | `common-report-spring-boot-starter` |
+| `wez-notification` | `common-notification-spring-boot-starter` |
+| `wez-diagram-sign` | `common-signature-spring-boot-starter`（business） |
 
 ### 原生取代（2 個）
 
@@ -300,14 +305,13 @@ care:
 | `wez-cache-redis` | `spring-boot-starter-data-redis` + `@EnableCaching` |
 | `wez-email` | `spring-boot-starter-mail` + `JavaMailSender` |
 
-### 待建（8 個）
+### 待建（6 個）
 
 | Grails 模組 | 預計 Starter | 工作量 |
 |---|---|---|
 | `wez-crypto` | `common-crypto-starter` | 1-2 天 |
 | `wez-ex-query` | `common-ex-query-starter` | 3-5 天 |
 | `wez-api-hub` | `common-api-hub-starter` | 3-5 天 |
-| `wez-diagram-sign` | `common-signature-starter` | 3 天 |
 | `wez-security-auth-gca` | `auth-gca` | 3 天 |
 | `wez-security-auth-moeaca` | `auth-moeaca` | 3 天 |
 | `wez-security-auth-xca` | `auth-xca` | 3 天 |
@@ -316,7 +320,7 @@ care:
 ### 不需要遷移（21 個）
 
 - **前後端分離淘汰**（3 個）：`wez-theme-bootstrap`、`wez-theme-webix`、`wez-web-bootstrap`
-- **太專案化**（14 個）：`wez-board`、`wez-notification`、`wez-log-viewer`、`wez-portal`、`wez-system`、`wez-system-moica`、`wez-report-bug`、`wez-diagram-family`、`wez-web-api-hub` 等
+- **太專案化**（13 個）：`wez-board`、`wez-log-viewer`、`wez-portal`、`wez-system`、`wez-system-moica`、`wez-report-bug`、`wez-diagram-family`、`wez-web-api-hub` 等
 - **獨立運作**（2 個）：`wez-test`、`websocket-proxy`（已是 Spring Boot 3.1.2）
 
 詳細分析：[docs/migration-starter-analysis.md](docs/migration-starter-analysis.md)
@@ -333,6 +337,7 @@ company-common-starters/
 ├── common-jpa-spring-boot-starter/      ← JPA 審計 + 軟刪除
 ├── common-response-spring-boot-starter/ ← 統一回應 + 例外處理
 ├── common-attachment-spring-boot-starter/ ← 附件管理
+├── common-notification-spring-boot-starter/ ← 通知系統
 ├── common-report/                       ← 報表產製（多模組）
 │   ├── common-report-core/              核心 SPI + Entity + Service
 │   ├── common-report-engine-easyexcel/  EasyExcel 引擎
@@ -349,6 +354,8 @@ company-common-starters/
 │   ├── common-security-autoconfigure/   AutoConfiguration
 │   ├── common-security-spring-boot-starter/ Starter 空殼
 │   └── common-security-test/            整合測試
+├── business/                            ← 業務級 Starter
+│   └── common-signature-spring-boot-starter/ 電子簽名板
 └── docs/                                ← 遷移文件
     ├── migration-starter-analysis.md    42 模組完整分析
     └── migration/                       各模組遷移指南
@@ -365,6 +372,11 @@ common-security-spring-boot-starter
 
 common-report-spring-boot-starter           ← 獨立可用
 common-attachment-spring-boot-starter       ← 獨立可用
+common-notification-spring-boot-starter     ← 獨立可用
+
+common-signature-spring-boot-starter       ← business
+├── common-jpa-spring-boot-starter
+└── common-attachment-spring-boot-starter
 ```
 
 ---

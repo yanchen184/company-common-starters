@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>wez-grails5 遷移儀表板</title>
+<style>
+  :root { --primary: #4f46e5; --success: #16a34a; --danger: #dc2626; --warning: #d97706; --skip: #6b7280; --bg: #f3f4f6; --surface: #fff; --text: #111827; --text2: #6b7280; --border: #e5e7eb; --radius: 8px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  .subtitle { color: var(--text2); font-size: 14px; margin-bottom: 24px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); text-align: center; }
+  .stat-num { font-size: 32px; font-weight: 700; }
+  .stat-label { font-size: 13px; color: var(--text2); margin-top: 4px; }
+  .progress-wrap { background: var(--surface); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); margin-bottom: 24px; }
+  .progress-bar { height: 24px; border-radius: 12px; background: #e5e7eb; overflow: hidden; display: flex; }
+  .progress-bar .done { background: var(--success); }
+  .progress-bar .skip { background: #d1d5db; }
+  .progress-bar .pending { background: #fde68a; }
+  .progress-legend { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: var(--text2); }
+  .progress-legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+  .progress-legend .l-done::before { background: var(--success); }
+  .progress-legend .l-skip::before { background: #d1d5db; }
+  .progress-legend .l-pending::before { background: #fde68a; }
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filters button { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; cursor: pointer; transition: all .15s; }
+  .filters button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .filters button:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+  .table-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: #f9fafb; text-align: left; padding: 10px 14px; font-weight: 600; font-size: 13px; color: var(--text2); border-bottom: 1px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background: #f9fafb; }
+  tr.clickable { cursor: pointer; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-skip { background: #f3f4f6; color: #6b7280; }
+  .badge-pending { background: #fef3c7; color: #92400e; }
+  .badge-complex { background: #fef2f2; color: #991b1b; }
+  .badge-medium { background: #fff7ed; color: #9a3412; }
+  .badge-simple { background: #f0fdf4; color: #166534; }
+  .group-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 100; animation: fadeIn .2s; }
+  .modal { background: var(--surface); border-radius: 12px; width: 92%; max-width: 780px; max-height: 88vh; overflow-y: auto; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.2); animation: slideUp .25s; }
+  .modal h2 { font-size: 20px; margin-bottom: 4px; }
+  .modal .modal-sub { color: var(--text2); font-size: 13px; margin-bottom: 16px; }
+  .modal .close-btn { position: sticky; top: 0; float: right; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text2); padding: 0 4px; z-index: 10; }
+  .modal .close-btn:hover { color: var(--text); }
+  .modal section { margin-bottom: 16px; }
+  .modal section h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--primary); }
+  .modal section p, .modal section li { font-size: 14px; line-height: 1.7; color: #374151; }
+  .modal ul { padding-left: 20px; }
+  .modal .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .modal .info-item { background: #f9fafb; padding: 10px 12px; border-radius: 6px; }
+  .modal .info-item dt { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+  .modal .info-item dd { font-size: 14px; font-weight: 500; margin-top: 2px; }
+  .modal code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+  .modal .dep-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .modal .dep-tag { background: #ede9fe; color: #5b21b6; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+  .modal .rec-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px; font-size: 14px; line-height: 1.7; }
+  .modal .improve-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; font-size: 14px; line-height: 1.7; }
+
+  /* Tabs inside modal */
+  .modal-tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 16px; }
+  .modal-tabs button { padding: 8px 16px; border: none; border-bottom: 2px solid transparent; background: none; font-size: 14px; cursor: pointer; color: var(--text2); margin-bottom: -2px; transition: all .15s; font-weight: 500; }
+  .modal-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  .modal-tabs button:hover:not(.active) { color: var(--text); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>wez-grails5 → Spring Boot 遷移儀表板</h1>
+  <p class="subtitle">43 個模組遷移進度追蹤 ｜ 更新於 2026-03-19</p>
+  <div class="stats" id="stats"></div>
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="progress-legend"><span class="l-done">已完成</span><span class="l-skip">不需要</span><span class="l-pending">待建</span></div>
+  </div>
+  <div class="filters" id="filters"></div>
+  <div class="table-wrap">
+    <table><thead><tr><th>模組</th><th>用途</th><th>遷移狀態</th><th>遷移目標</th><th>Spring Boot 對應</th></tr></thead><tbody id="tbody"></tbody></table>
+  </div>
+</div>
+<div class="modal-overlay" id="modalOverlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+const modules = [
+  // ==================== BACKEND - DONE ====================
+  { name:'wez-security', group:'backend', purpose:'安全與權限', status:'done', springBoot:'care-security', target:'common',
+    detail: {
+      original: {
+        features: ['Spring Security 5.8 自訂認證框架','密碼強度驗證（Passay 13 條規則）','密碼歷史追蹤，防止重複使用','帳號鎖定（連續失敗 N 次）','登入成功/失敗日誌記錄','使用者/角色/權限/選單/組織 Domain','Requestmap URL 安全映射','PDF 安全操作（PDFBox）','輸入清理（JSoup Sanitizer）'],
+        files: ['WezUserService','WezPasswordService（Passay）','WezLoginService','WezPermissionService','WezSauserService','WezMenuService'],
+        deps: ['spring-security-core 5.2.0','passay 1.6.2','jsoup 1.21.2','pdfbox 3.0.6'],
+        tables: ['SAUSER','ROLE','PERM','MENU','ORGANIZE','REQUESTMAP','SAUSER_ROLE','ROLE_GROUP']
+      },
+      improvements: ['自訂認證框架 → Spring Security 7 + OAuth2 標準化','自訂 Token → 標準 JWT + RSA 簽章（跨平台相容）','無登出機制 → Redis Token 黑名單（登出即失效）','Requestmap 表驅動 → @PreAuthorize 註解式權限','單一密碼編碼 → BCrypt + Legacy SHA-512 雙編碼（遷移相容）','無並發控制 → 樂觀鎖 @Version + 狀態轉移驗證','耦合式認證 → SPI 可插拔（LDAP/OTP/CAPTCHA/MOICA 解耦）','無測試 → 95 個整合測試全覆蓋'],
+      final: {
+        features: ['JWT 認證（Access 30min + Refresh 7天，RSA 簽章）','Redis Token 黑名單（登出即失效）','RBAC 權限模型（使用者 → 機構角色 → 角色 → 權限）','CRUD 權限評估器 @PreAuthorize','密碼安全策略（BCrypt + 複雜度 + 歷史檢查 + 黑名單）','帳號鎖定（Redis 計數，N 次失敗鎖 M 分鐘）','登入歷史 + 稽核日誌（IP、User-Agent）','使用者切換（Impersonation）','SPI 擴充介面（CaptchaVerifier、OtpChecker、LdapAuthenticator）','8 個 REST Controller（auth/users/roles/perms/menus/orgs/password-policy/captcha）'],
+        config: 'care.security.jwt.* / care.security.login.* / care.security.password.* / care.security.cors.*'
+      }
+    }
+  },
+  { name:'wez-test', group:'backend', purpose:'測試/Demo 應用', status:'done', springBoot:'starter-showcase', target:'common', target:'common',
+    detail: {
+      original: { features: ['多個範例 Controller（Ex100-Ex800）','表單測試','登入測試','URL mapping 範例','Grails GSP 視圖展示'], files: ['DemoController','TestController','FormController','LoginController','Ex100-Ex800 Controllers'], deps: ['所有 wez-* 模組'], tables: [] },
+      improvements: ['GSP 視圖 → React 前後端分離','範例散亂 → 結構化 Demo（LogDemo/ReportDemo/AttachmentDemo/PermTest）','無 API 文件 → RESTful API 端點清晰','無前端 → 完整 React + TypeScript 前端展示'],
+      final: { features: ['完整 Security Demo（密碼/憑證/OTP 登入）','Log Demo（API 測試 + 審計日誌 + 登入歷史）','Report Demo（Excel 多 Sheet / 樞紐分析 / Word 圖片 / JasperReports PDF / 10 萬筆效能測試）','Attachment Demo（上傳/下載/刪除）','Permission Test（CRUD 權限矩陣 + 使用者切換）','自然人憑證模擬讀卡機（Web Crypto PKCS#7）','React 19 + TypeScript + Vite 前端'], config: 'VITE_API_BASE_URL' }
+    }
+  },
+  { name:'wez-security-auth-moica-binding', group:'backend', purpose:'自然人憑證綁定', status:'done', springBoot:'common-security-auth-moica', target:'common',
+    detail: {
+      original: { features: ['MOICA 憑證綁定/解綁','憑證有效期驗證（notBefore/notAfter）','憑證鏈驗證','使用者身份比對（姓名 + 身分證後 4 碼）','防止重複綁定','PKCS#7 簽名驗證'], files: ['WezMoicaBindingUserDetailsService','MoicaBindingAuthenticationProvider','MoicaBindingSauser Domain'], deps: ['wez-core','wez-crypto','wez-security'], tables: ['SAUSER（擴充 moicaEnccert, moicaNotafter, moicaSerialNumber）'] },
+      improvements: ['Groovy 實作 → Java 21 + Bouncy Castle CMSSignedData','手動憑證解析 → 標準 X.509 + PKCS#7 流程','無 OCSP/CRL → 可擴充憑證撤銷檢查','綁定模式 → 同時支持綁定 + 即時驗證兩種模式'],
+      final: { features: ['PKCS#7 SignedData 解析（Bouncy Castle CMSSignedData）','X.509 憑證驗證 + 身份提取（CN + last4IDNO extension）','Login Token 機制（防重放攻擊）','自動建立/更新使用者帳號','JWT Token 簽發','前端模擬讀卡機（Web Crypto RSA-2048 + 自簽憑證）'], config: '整合於 care-security，無額外配置' }
+    }
+  },
+  { name:'wez-security-auth-moica-idno', group:'backend', purpose:'自然人憑證身分驗證', status:'done', springBoot:'common-security-auth-moica', target:'common',
+    detail: {
+      original: { features: ['依憑證 CN + 身分證後 4 碼查找使用者','無需預先綁定即可登入'], files: ['MoicaIdnoUserDetailsService'], deps: ['wez-core','wez-crypto','wez-security'], tables: ['SAUSER'] },
+      improvements: ['與 moica-binding 合併為統一模組','共用 PKCS#7 驗證流程','SPI 介面可自訂使用者查找邏輯'],
+      final: { features: ['已合併入 common-security-auth-moica','統一 PKCS#7 + X.509 驗證流程','支持綁定模式 + 即時查找模式'], config: '同 common-security-auth-moica' }
+    }
+  },
+  { name:'wez-security-auth-otp', group:'backend', purpose:'OTP 一次性密碼', status:'done', springBoot:'common-security-auth-otp', target:'common',
+    detail: {
+      original: { features: ['OTP 生成和驗證（可配置長度，預設 6 碼）','過期時間（預設 5 分鐘）','重試限制（預設 3 次）','多通道發送（Email/SMS/自訂 Notifier）','CAPTCHA 整合','非同步發送'], files: ['WezOtpLoginService','OtpAuthenticator','OtpSimpleNotifier','OtpMailNotifier'], deps: ['wez-core','wez-security'], tables: [] },
+      improvements: ['一次性 OTP → TOTP 標準（Google Authenticator 相容）','Server 端產生密碼 → 使用者端 App 產生（無需 SMS/Email 發送）','Session 儲存 → Stateless（JWT 登入後不依賴 Session）','自訂實作 → 標準 TOTP RFC 6238'],
+      final: { features: ['TOTP 設定（產生 secret + otpauth URI + QR Code）','TOTP 驗證（6 位數碼，30 秒視窗）','雙步驟登入流程（密碼 → OTP → JWT）','啟用/停用 OTP','SPI OtpChecker 介面（care-security 自動整合）'], config: '整合於 care-security 登入流程，自動偵測' }
+    }
+  },
+  { name:'wez-security-captcha', group:'backend', purpose:'驗證碼', status:'done', springBoot:'common-security-auth-captcha', target:'common',
+    detail: {
+      original: { features: ['CAPTCHA 圖片生成','多種生成策略（Happy-Captcha、SK、Default）','Session/Cookie 儲存','MD5 編碼驗證','Spring Security Filter 整合','字型管理'], files: ['CaptchaCaptureFilter','SimpleCaptchaService','CaptchaGenerator（3 種實作）','FontLoaderService'], deps: ['happy-captcha','wez-core'], tables: [] },
+      improvements: ['Session/Cookie 儲存 → Redis 儲存（Stateless 相容）','MD5 驗證 → 直接比對（Redis TTL 自動過期）','僅圖片 → 圖片 + TTS 語音（無障礙支持）','固定字型 → 可配置字型 + 內建預設','Filter 耦合 → SPI CaptchaVerifier 解耦'],
+      final: { features: ['驗證碼圖片生成（字母 + 數字混合）','TTS 語音驗證碼（無障礙 Accessibility）','Redis 儲存（可配置 TTL，預設 5 分鐘）','REST API（GET /api/auth/captcha + GET /api/auth/captcha/audio/{id}）','SPI CaptchaVerifier 自動注入 care-security 登入流程','Case-insensitive 比對'], config: 'care.security.captcha.enabled / captcha.ttl-seconds' }
+    }
+  },
+  { name:'wez-web-security', group:'backend', purpose:'密碼變更/重設', status:'done', springBoot:'care-security', target:'common',
+    detail: {
+      original: { features: ['密碼變更表單（GSP）','密碼重設流程','Web 安全配置','安全相關 TagLib'], files: ['Web Security Controllers','GSP Views'], deps: ['wez-security','wez-core'], tables: ['SAUSER'] },
+      improvements: ['GSP 表單 → REST API + React 前端','Server-side 驗證 → 前後端分離驗證','TagLib → React Component'],
+      final: { features: ['POST /api/auth/change-password（當前密碼 + 新密碼）','POST /api/users/{id}/reset-password（管理員重設）','密碼複雜度即時驗證','密碼歷史檢查','LDAP 使用者自動跳過（AD 管理密碼）'], config: 'care.security.password.*' }
+    }
+  },
+  { name:'wez-system-moica', group:'backend', purpose:'自然人憑證管理', status:'done', springBoot:'common-security-auth-moica', target:'common',
+    detail: {
+      original: { features: ['MOICA 憑證綁定/解綁管理介面','憑證有效期驗證','憑證撤銷檢查','使用者身份驗證'], files: ['MoicaService'], deps: ['wez-security','wez-crypto'], tables: ['SAUSER'] },
+      improvements: ['獨立管理模組（wez-system-moica）→ 合併入 common-security-auth-moica','GSP 後台管理介面 → REST API（/api/auth/cert/*）','原本需要管理員先幫使用者綁定憑證才能登入 → 使用者直接用憑證登入，系統自動建立/更新帳號，不需預先綁定'],
+      final: { features: ['已合併入 common-security-auth-moica','統一 REST API 端點（/api/auth/cert/*）','自動建立/更新使用者','Login Token + PKCS#7 完整驗證流程'], config: '同 common-security-auth-moica' }
+    }
+  },
+
+  // ==================== BACKEND - SKIP ====================
+  { name:'wez-core', group:'backend', purpose:'核心功能', status:'skip', springBoot:'已被 care-security 涵蓋', target:'skip', detail:null },
+  { name:'wez-theme-bootstrap', group:'backend', purpose:'Bootstrap JS/CSS 資源', status:'skip', springBoot:'前後端分離，不需要', target:'skip', detail:null },
+  { name:'wez-theme-webix', group:'backend', purpose:'Webix JS/CSS 資源', status:'skip', springBoot:'前後端分離，不需要', target:'skip', detail:null },
+  { name:'wez-web-bootstrap', group:'backend', purpose:'Bootstrap 視圖 + TagLib', status:'skip', springBoot:'前後端分離，不需要', target:'skip', detail:null },
+  { name:'wez-portal', group:'backend', purpose:'系統入口/儀表板', status:'skip', springBoot:'由前端 React 實作', target:'skip', detail:null },
+
+  // ==================== BACKEND - PENDING ====================
+  { name:'wez-security-auth-gca', group:'backend', purpose:'政府憑證認證 (GCA)', status:'pending', springBoot:'—', complexity:'complex', target:'common',
+    detail:{ pending:{ desc:'政府機構憑證（GCA）單一登入認證。透過 OID 載入使用者詳情，支援組織管理（單一/多重組織類型）、IP 限制驗證、權限與角色對應。', files:['GcaUserDetailsService.groovy','WezGcaUserDetailsService.groovy'], deps:['wez-core','wez-crypto','wez-security'], tables:['Sauser','相關組織表'], features:['loadUserByOID(oid) 依 OID 載入使用者','組織管理（單一/多重）','IP 限制驗證','權限與角色對應'], usage:'目前實作不完整（TODO 註記）', recommendation:'需先完成 loadUserByOID() 未實裝邏輯。轉為 Spring Security 自訂 AuthenticationProvider + UserDetailsService。', days:'5-8 天' }}
+  },
+  { name:'wez-security-auth-health-card', group:'backend', purpose:'健保卡登入', status:'pending', springBoot:'—', complexity:'complex', target:'common',
+    detail:{ pending:{ desc:'台灣健保卡單一登入認證。整合健保局外部 API，使用 LoginToken（UUID + IDNO）管理登入流程，含加密/解密機制。', files:['WezHealthCardLoginController.groovy','HealthCardUserDetailsService.groovy'], deps:['wez-core','wez-crypto','wez-security','java-jwt 4.4.0'], tables:['Sauser','SauserNotifyType'], features:['GET/POST /login/healthCardAuth 登入','健保局外部 API 整合','LoginToken 管理 (UUID + IDNO)','HealthCardUtils.encrypt() 加密','登入失敗訊息分發 (AJAX/HTML)'], usage:'高度活躍，已完整實裝', recommendation:'轉為 @RestController + WebFilter。使用 RestTemplate/WebClient 呼叫健保局 API。JWT 改用 Spring Security OAuth2。', days:'5 天' }}
+  },
+  { name:'wez-security-auth-moeaca', group:'backend', purpose:'工商憑證認證', status:'pending', springBoot:'—', complexity:'medium', target:'common',
+    detail:{ pending:{ desc:'工商憑證（MOEACA）X.509 認證。透過憑證工廠模式，根據 issuer 自動選擇適當的 CertUtils 進行驗證。', files:['MoeacaUserDetailsService.groovy','WezMoeacaUserDetailsService.groovy'], deps:['wez-core','wez-crypto','wez-security'], tables:['Sauser','相關組織表'], features:['X.509 工商憑證驗證','憑證工廠模式','PKCS#7 簽名驗證'], usage:'中度使用，已完整實裝', recommendation:'Spring Security AuthenticationProvider + X.509（原生支持）。與 GCA、XCA 共用 CertFactory。', days:'3 天' }}
+  },
+  { name:'wez-security-auth-xca', group:'backend', purpose:'組織/團體憑證', status:'pending', springBoot:'—', complexity:'medium', target:'common',
+    detail:{ pending:{ desc:'組織及團體憑證（XCA）X.509 認證。結構與 MOEACA 類似，共用 CertFactory。', files:['XcaUserDetailsService.groovy','WezXcaUserDetailsService.groovy'], deps:['wez-core','wez-crypto','wez-security'], tables:['Sauser'], features:['X.509 組織憑證驗證','共用憑證工廠模式'], usage:'中度使用，已完整實裝', recommendation:'同 MOEACA。三個憑證模組可抽成統一 common-security-auth-cert starter。', days:'3 天' }}
+  },
+  { name:'wez-web-api-hub', group:'backend', purpose:'API Hub 管理介面', status:'pending', springBoot:'—', complexity:'medium', target:'common',
+    detail:{ pending:{ desc:'API Hub Web 管理介面。API 設定 CRUD、使用者權限管理、呼叫日誌追蹤。', files:['Hub100Controller（設定）','Hub200Controller（使用者）','Hub300Controller（日誌）'], deps:['wez-api-hub 1.0.4','wez-web-bootstrap','wez-core','wez-security'], tables:['HubSet','HubUserSet','HubUser','HubLog'], features:['API 設定 CRUD（名稱、URI、JWT 時效）','使用者權限管理','API 呼叫日誌追蹤','DataTable 分頁查詢'], usage:'高度活躍（外部系統整合核心）', recommendation:'轉為 @RestController + React 前端。依賴 wez-api-hub plugin 需先遷移。', days:'4 天' }}
+  },
+  { name:'wez-board', group:'backend', purpose:'公告系統', status:'pending', springBoot:'—', complexity:'simple', target:'business',
+    detail:{ pending:{ desc:'系統公告/新聞發佈管理。', files:['BoardNews.groovy','BoardReadable.groovy'], deps:['wez-attachment 1.1.1','wez-core','wez-security'], tables:['BOARD_NEWS','BOARD_READABLE'], features:['公告 CRUD','使用者閱讀狀態追蹤','公告發佈管理','附件支持'], usage:'中度使用', recommendation:'Spring Data JPA + Repository + @RestController。', days:'2 天' }}
+  },
+  { name:'wez-email', group:'backend', purpose:'郵件功能', status:'skip', springBoot:'spring-boot-starter-mail', target:'skip', detail:null },
+  { name:'wez-notification', group:'backend', purpose:'通知系統', status:'done', springBoot:'common-notification-starter', target:'common',
+    detail: {
+      original: { features: ['多通道通知（EMAIL + WebSocket STOMP）','使用者通知偏好設定（SauserNotifyType）','STOMP 即時推播（透過 websocket-proxy）','批次儲存通知紀錄','通知已讀狀態管理','加密使用者 ID 傳輸'], files: ['WezNotificationService','WezEmailNotificationService','WezWebsocketStompNotificationService','SauserNotifyType','Notify Domain','WezBatchData'], deps: ['wez-core','wez-security','wez-email'], tables: ['notify','sauser_notify_type'] },
+      improvements: ['寄失敗就沒了 → 自動重試（可配置最大次數，預設 3 次）','無狀態追蹤 → NotificationLog（PENDING → SENDING → SENT / FAILED）','無排程發送 → 支援 sendAt 延遲/定時發送','switch 硬編碼通道 → SPI NotificationChannel 可插拔','直接傳 HTML 字串 → Thymeleaf 範本引擎','new Thread() → 獨立線程池 + @Async','無清理機制 → 自動清理過期紀錄（預設 90 天）','wez-email 獨立依賴 → 直接用 spring-boot-starter-mail（不需額外 starter）'],
+      final: { features: ['多通道 SPI（EMAIL / WEBSOCKET / 自訂 Channel）','排程發送（sendAt 延遲/定時，排程器每 30 秒掃描）','失敗自動重試（可配置次數，每 5 分鐘掃描重試）','狀態追蹤（PENDING → SENDING → SENT / FAILED）','Thymeleaf 郵件範本（內容和格式分離）','非同步執行（獨立線程池 + CallerRunsPolicy）','自動清理過期紀錄（預設 90 天，每天凌晨 3 點）','RecipientResolver SPI（消費端實作使用者查找）','通知分類（category：SYSTEM / APPROVAL / ALERT）','NotificationLog Entity + Repository（完整 CRUD）'], config: 'common.notification.enabled / from-address / default-channels / max-retry / retention-days / async.*' }
+    }
+  },
+  { name:'wez-report-bug', group:'backend', purpose:'線上 Bug 回報', status:'pending', springBoot:'—', complexity:'medium', target:'business',
+    detail:{ pending:{ desc:'Bug 回報系統。CRUD + 篩選 + 附件 + 匯出。', files:['ReportBug.groovy','ReportBugService','ReportBugController'], deps:['wez-attachment 1.1.1','wez-core','grails-export-service'], tables:['REPORT_BUG'], features:['Bug CRUD + 分頁排序','篩選查詢','附件上傳','資料匯出（Excel/CSV）'], usage:'中度使用', recommendation:'Spring Data JPA + EasyExcel + common-attachment-starter。', days:'3 天' }}
+  },
+  { name:'wez-diagram-family', group:'backend', purpose:'家族樹圖', status:'pending', springBoot:'—', complexity:'medium', target:'business',
+    detail:{ pending:{ desc:'家族關係圖。JSON 存儲 + 版本歷程 + 圖片上傳。', files:['FamilyDiagram.groovy','FamilyDiagramLog.groovy','FamilyDiagramService'], deps:['wez-attachment 1.1.1','wez-core','wez-security'], tables:['FD_FAMILY_DIAGRAM','FD_FAMILY_DIAGRAM_LOG','ATTACHMENT'], features:['圖形 JSON 存儲','版本歷程管理','圖片上傳（JPG/PNG/GIF）','可配置存儲模式'], usage:'中度使用', recommendation:'Spring Data JPA + Spring Data Audit。', days:'3 天' }}
+  },
+  { name:'wez-diagram-sign', group:'backend', purpose:'電子簽名板', status:'done', springBoot:'common-signature-spring-boot-starter', target:'business',
+    detail: {
+      original: { features: ['Fabric.js Canvas 手寫簽名','Canvas JSON 序列化/反序列化','簽名截圖 PNG 存附件','tabName + refid 組合鍵關聯業務資料','簽名預覽嵌入（_preview.gsp）','支援繪圖模式（自由畫筆、線條、文字、群組）'], files: ['SignDiagram.groovy','SignDiagramService.groovy','SignDiagramController.groovy','signDiagram.js（Fabric.js 封裝）'], deps: ['wez-attachment 1.1.1','wez-core','Fabric.js'], tables: ['SIGN_DIAGRAM','ATTACHMENT'] },
+      improvements: ['tabName/refid → ownerType/ownerId（語意化命名）','附件每次 query 查找 → attachmentId 直接存在 Entity 上','無版本控制 → @Version 樂觀鎖','無審計 → AuditableEntity 自動 createdBy/lastModifiedBy','GSP 嵌入式 → REST API + React Canvas 前端','Grails Service → Spring Boot AutoConfiguration 自動裝配','ownerType + ownerId 無唯一約束 → 唯一索引防重複'],
+      final: { features: ['SignatureDiagram Entity（ownerType + ownerId 唯一索引 + attachmentId）','SignatureService（save/findByOwner/delete，自動管理附件生命週期）','SignatureController REST API（POST 存檔 / GET 查詢 / DELETE 刪除）','multipart/form-data 接收 Canvas JSON + PNG 截圖','舊附件自動軟刪除再上傳新附件','附件 ownerType 自動加 SIGN_ 前綴','@ConditionalOnBean(AttachmentService) 自動裝配','前端 React Canvas Demo 頁面'], config: 'common.signature.enabled / common.signature.api-prefix' }
+    }
+  },
+  { name:'wez-log-viewer', group:'backend', purpose:'Log 查詢檢視', status:'pending', springBoot:'—', complexity:'medium', target:'business',
+    detail:{ pending:{ desc:'系統日誌查詢。多過濾條件 + SQL 方言適配 + 權限控管。', files:['ReportLogService','ReportLogController','Bs500Controller','Bs800Controller'], deps:['wez-core','wez-security','wez-email'], tables:['REPORT_LOG','REPORT_LOG_BLOB'], features:['完整日誌查詢 + 個人日誌','多過濾條件','跨資料庫方言（PostgreSQL/MSSQL）','非管理員僅看自己'], usage:'高度活躍', recommendation:'Spring Data JPA Specification + @Query native SQL。', days:'3 天' }}
+  },
+  { name:'wez-system', group:'backend', purpose:'系統管理', status:'pending', springBoot:'—', complexity:'complex', target:'app',
+    detail:{ pending:{ desc:'系統後台核心：使用者/角色/菜單/組織/代理人/角色組/密碼選項/個人菜單/偏好 CRUD。', files:['SauserController/Service','RoleController','MenuController/Service','OrganizeController','AgentController','RoleGroupController/Service','PwdOptionController','PersonalMenuController/Service','PreferenceController'], deps:['wez-core','wez-security','wez-theme-webix','wez-web-bootstrap','wez-report-grails-export'], tables:['Sauser','SauserRole','Role','Menu','Organization','Agent','RoleGroup','Bs101','Bs109','Bs122'], features:['使用者/角色/菜單/組織 CRUD','權限分配','菜單權限控管','個人菜單自訂','密碼策略管理','代理人設定','角色組管理'], usage:'超高度活躍（系統核心）', recommendation:'最大模組。分離為多個 @Service + @Controller + DTO。建議分 2-3 個 PR 逐步遷移。', days:'10-15 天' }}
+  },
+  { name:'wez-crypto', group:'backend', purpose:'憑證驗證共用基礎', status:'pending', springBoot:'common-security-cert-core', complexity:'simple', target:'common',
+    detail:{ pending:{ desc:'各種台灣政府憑證的共用驗證基礎：X.509 解析、PKCS#7 驗簽、CertFactory 路由。MOICA 部分已在 common-security-auth-moica 實作，需抽出共用邏輯供 GCA/MOEACA/XCA 共用。', files:['CertFactory（根據 issuer 路由到對應 CertProvider）','CertUtils（基底抽象類）','Pkcs7Utils（PKCS#7 驗簽）','SPI: CertProvider 介面（可插拔）'], deps:['Bouncy Castle 1.77','care-security core'], tables:[], features:['CertFactory — 根據憑證 issuer 自動路由到正確的 CertProvider','CertUtils — X.509 憑證解析基底（有效期、撤銷檢查、Subject 提取）','Pkcs7Utils — PKCS#7 SignedData 驗簽（共用，不重複四份）','SPI CertProvider — 每個憑證模組實作自己的 Provider'], usage:'超高度活躍（所有憑證認證模組依賴）', recommendation:'在 care-security 下新增 common-security-cert-core 子模組。從現有 moica 模組抽出共用的 Pkcs7Utils + X.509 基礎邏輯。GCA/MOEACA/XCA 各自實作 CertProvider。', days:'2 天' }}
+  },
+
+  // ==================== PLUGIN - DONE ====================
+  { name:'wez-base-core', group:'plugin', purpose:'核心 Domain（Sauser, Role, Org）', status:'done', springBoot:'common-security-core', target:'common',
+    detail: {
+      original: { features: ['核心 Domain：Sauser（9 個彈性欄位 value1-5）、Role、RoleGroup、Perm、Menu、Organize、Requestmap','Bs109 系統參數表（執行期可變更配置）','Portal + PersonalMenu 框架','Agent 代理人管理','AuditLogData 稽核追蹤','Stampable / Auditable Trait'], files: ['Sauser.groovy','Role.groovy','Perm.groovy','Menu.groovy','Organize.groovy','Bs109.groovy','Portal.groovy','Agent.groovy','AuditLogData.groovy'], deps: ['（無內部依賴，核心 plugin）'], tables: ['SAUSER','ROLE','PERM','MENU','ORGANIZE','REQUESTMAP','BS109','BS100','BS101','PORTAL','PERSONAL_MENU'] },
+      improvements: ['GORM Domain → JPA @Entity（標準 ORM）','Groovy Trait → Java 繼承體系（AuditableEntity / BaseEntity）','Bs109 配置表 → application.yml + @ConfigurationProperties（Spring 標準）','自訂稽核 → Spring Data JPA @EnableJpaAuditing + AuditorAware','無版本控制 → @Version 樂觀鎖','9 個彈性欄位 → 精簡為必要欄位 + 擴充機制'],
+      final: { features: ['8 個 JPA Entity（SaUser、Role、Perm、Menu、Organize、SaUserOrgRole、RolePerms、AuditLog）','Spring Data JPA Repository（自動 CRUD）','AuditorAware 自動追蹤修改人（SecurityContext）','@Version 樂觀鎖','AuditLog 稽核記錄（操作類型、IP、User-Agent）','完整 RBAC 關聯映射'], config: 'Spring Data JPA 自動配置，無額外設定' }
+    }
+  },
+  { name:'wez-base', group:'plugin', purpose:'基礎功能類別', status:'done', springBoot:'common-jpa-spring-boot-starter', target:'common',
+    detail: {
+      original: { features: ['通用工具（分頁、結果格式化）','民國日期轉換（MinguoDateTimeBindingHelper）','檔案操作（WezFileService）','國際化（WezI18nService）','Bs109 系統參數管理','Groovy Data Binding Converter'], files: ['WezCommonService','WezFileService','WezI18nService','WezBs109Service','MinguoDateStringValueConverter'], deps: ['wez-logs','groovy-dateutil','jedis'], tables: ['BS109'] },
+      improvements: ['手動審計 → AuditableEntity 自動審計（createdDate/By, lastModifiedDate/By）','無軟刪除 → BaseEntity + SoftDeleteRepository（opt-in）','GORM → Spring Data JPA + Repository','手動分頁 → Spring Data Pageable','民國日期等 Grails 專用工具 → 不遷移（前後端分離用 ISO 日期）'],
+      final: { features: ['AuditableEntity 自動審計（4 欄位：createdDate/By + lastModifiedDate/By）','AuditorAware（從 SecurityContext 取當前使用者，無認證回傳 SYSTEM）','BaseEntity = AuditableEntity + deleted（軟刪除）+ version（樂觀鎖）','SoftDeleteRepository<T,ID>（findAllActive / softDeleteById / restoreById）','@EnableJpaAuditing 自動配置（不與消費端衝突）'], config: '零配置，引入依賴即生效' }
+    }
+  },
+  { name:'wez-attachment', group:'plugin', purpose:'附件管理（Apache Tika）', status:'done', springBoot:'common-attachment-spring-boot-starter', target:'common',
+    detail: {
+      original: { features: ['檔案上傳/下載管理','Blob 儲存（DB 或檔案系統）','自動圖片壓縮（1920px）','檔案驗證','軟刪除','附件分組','MIME 偵測'], files: ['AttachmentService','WezAttachmentService','WezFileValidationService','Attachment.groovy','AttachmentBlob.groovy'], deps: ['wez-base','wez-logs','jodconverter'], tables: ['ATTACHMENT','ATTACHMENT_BLOB'] },
+      improvements: ['簡單 MIME 檢查 → Apache Tika magic bytes 真實偵測（改名 .exe → .jpg 也擋）','無副檔名黑名單 → 26 種危險副檔名 + 雙重副檔名防護','無路徑穿越檢查 → PathTraversalGuard 完整防護','信任 client 大小 → 實際 byte[] 驗證','同步壓縮 → 事件驅動異步圖片壓縮（AttachmentUploadedEvent）','無存取控制 → AttachmentAccessPolicy SPI（預設全拒絕）','一次性讀取 → Streaming 下載（大檔案不吃 heap）'],
+      final: { features: ['強制驗證 Pipeline（readBytes → Tika → PathTraversal → FileSize → MimeType → Store → Persist → Event）','Apache Tika MIME 偵測（magic bytes）','26 種副檔名黑名單 + 雙重副檔名防護','路徑穿越防護（拒絕 ../、\\、%）','Strategy Pattern 儲存（Filesystem / Database BLOB / 自訂 S3）','事件驅動異步圖片壓縮（Thumbnailator，commit 後觸發）','AttachmentAccessPolicy SPI（必須實作，預設全拒絕）','Streaming 下載','軟刪除 + 審計欄位'], config: 'wez.attachment.storage-type / storage-path / max-file-size / allowed-mime-types / image.compression-enabled / image.quality' }
+    }
+  },
+  { name:'wez-captcha', group:'plugin', purpose:'驗證碼實作', status:'done', springBoot:'common-security-auth-captcha', target:'common',
+    detail: {
+      original: { features: ['CAPTCHA 圖片生成（3 種 Generator）','Session/Cookie 儲存','MD5 編碼驗證','字型載入'], files: ['SimpleCaptchaService','CaptchaHappyGenerator','CaptchaSKGenerator','DefaultCaptchaGenerator','FontLoaderService'], deps: ['happy-captcha'], tables: [] },
+      improvements: ['Session/Cookie → Redis（Stateless JWT 相容）','MD5 → 直接比對 + Redis TTL 自動過期','僅圖片 → 圖片 + TTS 語音（無障礙）','3 種 Generator → 統一實作 + 可配置'],
+      final: { features: ['驗證碼圖片生成','TTS 語音驗證碼（無障礙）','Redis 儲存 + TTL 自動過期','REST API 端點','SPI 自動注入 care-security','Case-insensitive 比對'], config: 'care.security.captcha.*' }
+    }
+  },
+  { name:'wez-logs', group:'plugin', purpose:'日誌工具', status:'done', springBoot:'common-log-spring-boot-starter', target:'common',
+    detail: {
+      original: { features: ['Hibernate 事件監聽器稽核（Auditable Trait）','欄位變更追蹤（oldValue → newValue）','Stampable Trait（自動時間戳）','AuditRequestResolver（Spring Security 使用者追蹤）','AuditLogData Domain（className、eventName、oldValue、newValue、persistedObjectId）'], files: ['AuditLogListener','AuditRequestResolver','Auditable Trait','Stampable Trait','AuditLogData.groovy'], deps: ['（核心稽核框架）'], tables: ['AUDIT_LOG_DATA'] },
+      improvements: ['Hibernate 監聽器 → AOP @Around 攔截 @RestController','僅 Entity 變更追蹤 → API 請求/回應完整日誌','無 Trace → Micrometer Tracing（traceId/spanId + W3C 標準）','無遮罩 → 敏感資料自動遮罩（password/token/creditCard）','無慢 API 警告 → 超閾值自動 WARN + [SLOW] 標記','無註解控制 → @Loggable（maskFields、slowThresholdMs、logRequest、logResponseBody）'],
+      final: { features: ['自動 API 日誌（AOP 攔截所有 @RestController）','格式：--> POST /api/auth/login body={...} 和 <-- 200 POST ... 274ms','Micrometer Tracing（traceId/spanId + W3C Trace Context）','敏感資料自動遮罩（password/token/creditCard + 自訂）','慢 API 告警（預設 3 秒，升級 WARN + [SLOW]）','錯誤自動印行數','@Loggable 細粒度控制','EnvironmentPostProcessor 早期初始化'], config: 'common.log.enabled / slow-threshold-ms / mask-fields / log-response-body / max-response-length / exclude-patterns' }
+    }
+  },
+  { name:'wez-logs-extra-filter', group:'plugin', purpose:'額外日誌過濾器', status:'done', springBoot:'common-log-spring-boot-starter', target:'common',
+    detail: {
+      original: { features: ['額外請求上下文（IP、User-Agent）','請求 Filter 注入 MDC'], files: ['Extra Filter classes'], deps: ['wez-logs'], tables: [] },
+      improvements: ['獨立 plugin → 合併入 common-log-spring-boot-starter','手動 MDC → Micrometer 自動注入 traceId/spanId'],
+      final: { features: ['已合併入 common-log-spring-boot-starter','MDC 自動注入（無需手動設定 logback pattern）','W3C Trace Context 跨服務傳播'], config: '同 common-log' }
+    }
+  },
+  { name:'wez-report', group:'plugin', purpose:'報表共用核心', status:'done', springBoot:'common-report-core', target:'common',
+    detail: {
+      original: { features: ['報表定義管理（ReportItem）','報表匯出歷程（ReportLog + ReportLogBlob）','同步/非同步匯出','JODConverter 文件轉檔（LibreOffice）','角色權限控管','動態資料模型'], files: ['ReportItem.groovy','ReportLog.groovy','ReportLogBlob.groovy','ReportTransferService'], deps: ['wez-base','wez-logs','tika'], tables: ['REPORT_ITEM','REPORT_LOG','REPORT_LOG_BLOB'] },
+      improvements: ['Map 傳參 → ReportContext.builder() 型別安全','簡單狀態 → 狀態機（PENDING→PROCESSING→COMPLETED/FAILED，終態不可轉移）','Session 下載 → UUID + Database 持久化','無路徑防護 → 路徑遍歷保護（禁 .. \\ :// %）','無並發控制 → @Version 樂觀鎖','BLOB 耦合 → ReportLogBlob 分離表（查詢不載入大檔案）','無 SPI → ReportEngine 可插拔介面（加依賴自動註冊）','無批次清理 → JPQL 批次刪除','無測試 → 39 個 TDD 測試'],
+      final: { features: ['SPI ReportEngine 可插拔引擎（含 generateMerged default method）','ReportContext.builder() — sheets / images / pivots 擴展欄位','SheetData（多 Sheet）/ ImageSource（圖片）/ PivotConfig（樞紐分析表）DTO','非同步產製狀態機（PENDING→PROCESSING→COMPLETED/FAILED）','UUID 下載（Database 持久化）','ReportLog + ReportLogBlob 分離（延遲載入）','路徑遍歷防護 + 50MB 限制','@Version 樂觀鎖','執行緒池配置（core/max/queue + CallerRunsPolicy）','5 個 REST 端點（generate / generate-async / status / download / engines）'], config: 'common.report.enabled / storage.type / async.core-pool-size / async.max-pool-size / cleanup.*' }
+    }
+  },
+  { name:'wez-report-easyexcel', group:'plugin', purpose:'報表引擎：EasyExcel', status:'done', springBoot:'common-report-engine-easyexcel', target:'common',
+    detail: {
+      original: { features: ['EasyExcel Excel 生成','範本填充模式','Row Break 處理','Cell Merge 策略（SetRangeAddress / ColumnValueAuto）','Cell Style 自訂','格式轉換（Excel/ODS/PDF via JODConverter）','非同步匯出'], files: ['EasyExcelExportService','SetRangeAddressMergeStrategy','ColumnValueAutoMergeStrategy','SetRowBreakStrategy','SetLocationCellStyleStrategy'], deps: ['easyexcel 4.0.1','poi 5.3.0'], tables: [] },
+      improvements: ['Grails Service → Spring Boot ReportEngine SPI 實作','手動參數 → ReportContext Builder','格式轉換耦合 → 引擎只負責生成，轉檔獨立處理'],
+      final: { features: ['支援 XLSX / XLS / CSV','資料寫入模式（List<?> + @ExcelProperty + @ColumnWidth）','範本填充模式（.xlsx 範本 + 變數替換）','多 Sheet 模式（SheetData DTO）','樞紐分析表（PivotConfig — SUM/COUNT/AVG/MAX/MIN + 自訂 label）','多 Context 合併產製（generateMerged）','CustomMergeStrategy（相同值自動垂直合併）','實作 ReportEngine SPI（加依賴自動註冊）','同步 + 非同步產製'], config: '加入依賴即生效，無額外配置' }
+    }
+  },
+  { name:'wez-report-xdocreport', group:'plugin', purpose:'報表引擎：xDocReport', status:'done', springBoot:'common-report-engine-xdocreport', target:'common',
+    detail: {
+      original: { features: ['XDocReport Word/ODT 生成','Velocity/FreeMarker 範本引擎','圖片欄位處理','HTML 欄位（特殊字元處理）','文件格式轉換','非同步/同步匯出','報表日誌'], files: ['XdocReportExportService'], deps: ['xdocreport 2.1.0','xdocreport-template（Velocity/FreeMarker）'], tables: [] },
+      improvements: ['Grails Service → Spring Boot ReportEngine SPI 實作','與 EasyExcel 共用 ReportContext + 狀態機','HTML 欄位處理更穩定'],
+      final: { features: ['支援 DOCX / PDF / ODT','Word 範本 + Velocity 變數替換（#foreach 表格行重複）','圖片插入（POI 後處理 — 支援表格 cell 和段落）','多 Context 合併產製（generateMerged）','空行自動清除（removeEmptyTableRows）','適合合約、公文、通知書','實作 ReportEngine SPI（加依賴自動註冊）','同步 + 非同步產製'], config: '加入依賴即生效，無額外配置' }
+    }
+  },
+
+  // ==================== PLUGIN - SKIP ====================
+  { name:'wez-cache-redis', group:'plugin', purpose:'Redis 快取 + Caffeine L2', status:'skip', springBoot:'Spring Boot 原生 starter 已足夠', target:'skip', detail:null },
+  { name:'groovy-wslite', group:'plugin', purpose:'Groovy HTTP/REST 客戶端', status:'skip', springBoot:'Groovy 專用，用 RestClient', target:'skip', detail:null },
+  { name:'wez-report-grails-export', group:'plugin', purpose:'報表引擎：Grails Export', status:'skip', springBoot:'Grails 專用，不遷移', target:'skip', detail:null },
+
+  // ==================== PLUGIN - PENDING ====================
+  { name:'wez-api-hub', group:'plugin', purpose:'API 整合 Hub', status:'pending', springBoot:'—', complexity:'medium', target:'common',
+    detail:{ pending:{ desc:'統一 API 認證閘道。帳密驗證 + JWT 簽發 + IP 白名單 + 呼叫日誌。', files:['HubSet.groovy','HubUser.groovy','HubUserSet.groovy','HubLog.groovy','WezHubService.groovy','JwtUtils.groovy'], deps:['wez-base 1.0.2','wez-logs 0.9','jjwt 0.12.3'], tables:['HUB_SET','HUB_USER','HUB_USER_SET','HUB_LOG'], features:['JWT token 生成和驗證 (HS256)','API URI 白名單','IP 白名單（單一/CIDR/範圍）','使用者認證（帳密 or JWT）','呼叫日誌記錄'], usage:'超高度活躍', recommendation:'轉為 Spring Boot Starter + Spring Security Filter + @EnableApiHub。', days:'4 天' }}
+  },
+  { name:'wez-ex-query', group:'plugin', purpose:'擴展查詢工具', status:'pending', springBoot:'—', complexity:'complex', target:'common',
+    detail:{ pending:{ desc:'Web 版 SQL 客戶端。跨資料庫動態 SQL 查詢，支援 MSSQL/Oracle/PostgreSQL/MariaDB/MySQL。', files:['ExQueryService.groovy','ExecInfoObject.groovy'], deps:['jsqlparser 4.6','fastjson2 2.0.48'], tables:[], features:['query() + 自動 COUNT(*) 分頁','execute() DML + 交易控制','queryExport() JSON 匯出','stopExecute() 中止查詢','CTE / UNION 支援','Base64 參數傳輸'], usage:'中度使用（管理工具）', recommendation:'Spring JDBC Template。必須加 SQL 注入防護 + 查詢超時 + 結果限制。', days:'6-8 天' }}
+  },
+  { name:'wez-report-ireport', group:'plugin', purpose:'報表引擎：JasperReports', status:'done', springBoot:'common-report-engine-jasper', target:'common',
+    detail: {
+      original: { features: ['JasperReports 6.20.5 報表生成','PDF/Excel/Word 匯出','中文字體支持（楷體、微軟正黑體）','iReport 設計工具'], files: ['IreportExportService','JasperFixService'], deps: ['jasperreports 6.20.5','openpdf 1.3.30','poi 5.3.0'], tables: [] },
+      improvements: ['Grails Service → Spring Boot ReportEngine SPI 實作','JasperReports 6.x → 7.0.1（Jakarta namespace）','jrxml 格式更新（JR 7.x JSON-based XML）','中文字體：Noto Sans SC 嵌入 + ignore.missing.font fallback','多 Context 合併（generateMerged — 合併 JasperPrint 頁面）'],
+      final: { features: ['支援 PDF / XLSX','JasperReports 7.0.1（Jakarta namespace，與 Spring Boot 4.x 相容）','.jrxml 自動編譯 + .jasper 直接載入','JRBeanCollectionDataSource 資料填充','多 Context 合併產製（合併多個 JasperPrint 頁面）','中文字體支援（Noto Sans SC + ignore.missing.font）','實作 ReportEngine SPI（加依賴自動註冊）'], config: '加入依賴即生效，無額外配置' }
+    }
+  },
+
+  // ==================== OTHER ====================
+  { name:'websocket-proxy', group:'other', purpose:'Redis WebSocket 代理', status:'pending', springBoot:'—', complexity:'simple', target:'microservice',
+    detail:{ pending:{ desc:'已是獨立 Spring Boot 3.1.2 應用。STOMP over WebSocket + Redis Pub/Sub + Caffeine L2。', files:['ProxyController.java','ProxyToRedisService.java','RedisCache.java','CacheMessageListener.java'], deps:['Spring Boot 3.1.2','Jedis 4.3.1','Caffeine 3.1.6'], tables:[], features:['公開廣播 / 個人訊息 / 伺服器訊息','Redis Pub/Sub 跨伺服器同步','L2 Caffeine 本地緩存','WebSocket 認證令牌解析'], usage:'超高度活躍（即時通知核心）', recommendation:'無需遷移，已是 Spring Boot。只需升級至 4.x 或整合至主應用。', days:'0 天（升級 1 天）' }}
+  },
+];
+
+// --- Render ---
+const STATUS_MAP = { done:{label:'已完成',cls:'badge-done'}, skip:{label:'不需要',cls:'badge-skip'}, pending:{label:'待建',cls:'badge-pending'} };
+const COMPLEXITY_MAP = { simple:{label:'簡單',cls:'badge-simple'}, medium:{label:'中等',cls:'badge-medium'}, complex:{label:'複雜',cls:'badge-complex'} };
+const GROUP_MAP = { backend:'Backend', plugin:'Plugin', other:'Other' };
+const TARGET_MAP = { common:{label:'common-starters',cls:'badge-done'}, business:{label:'business-starters',cls:'badge-medium'}, app:{label:'消費端自行實作',cls:'badge-pending'}, microservice:{label:'獨立微服務',cls:'badge-skip'}, skip:{label:'—',cls:''} };
+let filter = 'all';
+
+function render() {
+  const done=modules.filter(m=>m.status==='done').length, skip=modules.filter(m=>m.status==='skip').length, pending=modules.filter(m=>m.status==='pending').length, total=modules.length;
+  const commonCnt=modules.filter(m=>m.target==='common').length, bizCnt=modules.filter(m=>m.target==='business').length;
+  const need=done+pending;
+  document.getElementById('stats').innerHTML=[{n:need,l:'需遷移',c:'var(--primary)'},{n:done,l:'已完成',c:'var(--success)'},{n:pending,l:'待建',c:'var(--warning)'},{n:Math.round(done/need*100)+'%',l:'完成率',c:'var(--primary)'}].map(s=>`<div class="stat-card"><div class="stat-num" style="color:${s.c}">${s.n}</div><div class="stat-label">${s.l}</div></div>`).join('');
+  document.getElementById('progressBar').innerHTML=`<div class="done" style="width:${done/total*100}%"></div><div class="skip" style="width:${skip/total*100}%"></div><div class="pending" style="width:${pending/total*100}%"></div>`;
+  const fs=[
+    {key:'all',label:`全部 (${total})`},
+    {key:'done',label:`已完成 (${done})`},
+    {key:'skip',label:`不需要 (${skip})`},
+    {key:'pending',label:`待建 (${pending})`},
+    {key:'_sep'},
+    {key:'common',label:`Common (${commonCnt})`},
+    {key:'business',label:`Business (${bizCnt})`},
+  ];
+  document.getElementById('filters').innerHTML=fs.map(f=>{
+    if(f.key==='_sep') return '<span style="border-left:1px solid var(--border);margin:0 4px"></span>';
+    return `<button class="${filter===f.key?'active':''}" onclick="setFilter('${f.key}')">${f.label}</button>`;
+  }).join('');
+  let filtered;
+  if(filter==='all') filtered=modules;
+  else if(filter==='common'||filter==='business') filtered=modules.filter(m=>m.target===filter);
+  else filtered=modules.filter(m=>m.status===filter);
+  document.getElementById('tbody').innerHTML=filtered.map(m=>{
+    const st=STATUS_MAP[m.status], cx=COMPLEXITY_MAP[m.complexity], tg=TARGET_MAP[m.target];
+    const click=m.detail?`class="clickable" onclick="openModal('${m.name}')"` :'';
+    return `<tr ${click}><td><strong>${m.name}</strong></td><td>${m.purpose}</td><td><span class="badge ${st.cls}">${st.label}</span></td><td>${tg&&tg.label!=='—'?`<span class="badge ${tg.cls}">${tg.label}</span>`:'<span style="color:#d1d5db">—</span>'}</td><td>${m.springBoot&&m.springBoot!=='—'?`<code style="font-size:12px">${m.springBoot}</code>`:(cx?`<span class="badge ${cx.cls}">${cx.label}</span>`:'<span style="color:#d1d5db">—</span>')}</td></tr>`;
+  }).join('');
+}
+
+function setFilter(f){filter=f;render();}
+
+function renderList(arr){return arr.map(x=>`<li>${x}</li>`).join('');}
+
+function openModal(name) {
+  const m=modules.find(x=>x.name===name);
+  if(!m||!m.detail) return;
+  const d=m.detail, st=STATUS_MAP[m.status], cx=COMPLEXITY_MAP[m.complexity];
+
+  if(m.status==='done') {
+    // 三分頁 Modal
+    document.getElementById('modalContent').innerHTML=`
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+      <h2>${m.name}</h2>
+      <div class="modal-sub">${m.purpose} → <code>${m.springBoot}</code> &nbsp; <span class="badge ${st.cls}">${st.label}</span></div>
+      <div class="modal-tabs">
+        <button class="active" onclick="switchTab(this,'tab-original')">Grails 原始功能</button>
+        <button onclick="switchTab(this,'tab-improve')">改進部分</button>
+        <button onclick="switchTab(this,'tab-final')">最終功能</button>
+      </div>
+      <div id="tab-original" class="tab-content active">
+        <section><h3>原始功能</h3><ul>${renderList(d.original.features)}</ul></section>
+        <section><h3>核心檔案</h3><ul>${d.original.files.map(f=>`<li><code>${f}</code></li>`).join('')}</ul></section>
+        ${d.original.deps.length?`<section><h3>依賴</h3><div class="dep-list">${d.original.deps.map(x=>`<span class="dep-tag">${x}</span>`).join('')}</div></section>`:''}
+        ${d.original.tables.length?`<section><h3>資料庫表</h3><ul>${d.original.tables.map(t=>`<li><code>${t}</code></li>`).join('')}</ul></section>`:''}
+      </div>
+      <div id="tab-improve" class="tab-content">
+        <section><h3>改進清單</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${d.improvements.map(imp=>{
+              const parts=imp.split('→');
+              if(parts.length===2) return `<div class="improve-box"><span style="color:#991b1b;text-decoration:line-through">${parts[0].trim()}</span> → <strong style="color:#166534">${parts[1].trim()}</strong></div>`;
+              return `<div class="improve-box">${imp}</div>`;
+            }).join('')}
+          </div>
+        </section>
+      </div>
+      <div id="tab-final" class="tab-content">
+        <section><h3>Spring Boot 最終功能</h3><ul>${renderList(d.final.features)}</ul></section>
+        ${d.final.config?`<section><h3>設定屬性</h3><div class="rec-box"><code>${d.final.config}</code></div></section>`:''}
+      </div>`;
+  } else {
+    // 待建 Modal（單頁）
+    const p=d.pending;
+    document.getElementById('modalContent').innerHTML=`
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+      <h2>${m.name}</h2>
+      <div class="modal-sub">${m.purpose} &nbsp; <span class="badge ${st.cls}">${st.label}</span> ${cx?`<span class="badge ${cx.cls}">${cx.label}</span>`:''}</div>
+      <div class="info-grid"><div class="info-item"><dt>預估工時</dt><dd>${p.days}</dd></div><div class="info-item"><dt>使用情況</dt><dd>${p.usage}</dd></div></div>
+      <section><h3>功能說明</h3><p>${p.desc}</p></section>
+      <section><h3>核心功能</h3><ul>${renderList(p.features)}</ul></section>
+      <section><h3>核心檔案</h3><ul>${p.files.map(f=>`<li><code>${f}</code></li>`).join('')}</ul></section>
+      ${p.tables.length?`<section><h3>資料庫表</h3><ul>${p.tables.map(t=>`<li><code>${t}</code></li>`).join('')}</ul></section>`:''}
+      <section><h3>依賴</h3><div class="dep-list">${p.deps.map(x=>`<span class="dep-tag">${x}</span>`).join('')}</div></section>
+      <section><h3>遷移建議</h3><div class="rec-box">${p.recommendation}</div></section>`;
+  }
+  document.getElementById('modalOverlay').style.display='flex';
+}
+
+function switchTab(btn, tabId) {
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.closest('.modal').querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+}
+
+function closeModal(){document.getElementById('modalOverlay').style.display='none';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+render();
+</script>
+</body>
+</html>
