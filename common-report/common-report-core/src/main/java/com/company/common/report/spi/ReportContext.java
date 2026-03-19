@@ -3,7 +3,9 @@ package com.company.common.report.spi;
 import com.company.common.report.enums.OutputFormat;
 import com.company.common.report.enums.ReportEngineType;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +31,12 @@ public class ReportContext {
 
     /** 資料集 */
     private List<?> data;
+
+    /** 多 Sheet 資料（EasyExcel 用） */
+    private List<SheetData> sheets = new ArrayList<>();
+
+    /** 圖片來源（xDocReport 用） */
+    private Map<String, ImageSource> images = new LinkedHashMap<>();
 
     public String getTemplatePath() {
         return templatePath;
@@ -78,6 +86,22 @@ public class ReportContext {
         this.data = data;
     }
 
+    public List<SheetData> getSheets() {
+        return sheets;
+    }
+
+    public void setSheets(List<SheetData> sheets) {
+        this.sheets = sheets;
+    }
+
+    public Map<String, ImageSource> getImages() {
+        return images;
+    }
+
+    public void setImages(Map<String, ImageSource> images) {
+        this.images = images;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -89,6 +113,8 @@ public class ReportContext {
         private String fileName;
         private Map<String, Object> parameters = new HashMap<>();
         private List<?> data;
+        private List<SheetData> sheets = new ArrayList<>();
+        private Map<String, ImageSource> images = new LinkedHashMap<>();
 
         public Builder templatePath(String templatePath) { this.templatePath = templatePath; return this; }
         public Builder engineType(ReportEngineType engineType) { this.engineType = engineType; return this; }
@@ -101,6 +127,70 @@ public class ReportContext {
         public Builder parameter(String key, Object value) { this.parameters.put(key, value); return this; }
         public Builder data(List<?> data) { this.data = data; return this; }
 
+        // ===== 多 Sheet =====
+
+        /** 加入一頁 Sheet（自動從 data 推導 headClass） */
+        public Builder sheet(String sheetName, List<?> data) {
+            this.sheets.add(SheetData.of(sheetName, data));
+            return this;
+        }
+
+        /** 加入一頁 Sheet（指定 headClass） */
+        public Builder sheet(String sheetName, List<?> data, Class<?> headClass) {
+            this.sheets.add(SheetData.of(sheetName, data, headClass));
+            return this;
+        }
+
+        /** 加入一頁 Sheet（完整控制） */
+        public Builder sheet(SheetData sheetData) {
+            this.sheets.add(sheetData);
+            return this;
+        }
+
+        /** 設定所有 Sheet */
+        public Builder sheets(List<SheetData> sheets) {
+            this.sheets = sheets != null ? new ArrayList<>(sheets) : new ArrayList<>();
+            return this;
+        }
+
+        // ===== 圖片 =====
+
+        /** 插入圖片（byte[] 來源） */
+        public Builder image(String fieldName, byte[] content) {
+            this.images.put(fieldName, ImageSource.fromBytes(content));
+            return this;
+        }
+
+        /** 插入圖片（byte[] 來源，指定寬高） */
+        public Builder image(String fieldName, byte[] content, int width, int height) {
+            this.images.put(fieldName, ImageSource.fromBytes(content, width, height));
+            return this;
+        }
+
+        /** 插入圖片（檔案路徑來源） */
+        public Builder imageFromFile(String fieldName, String filePath) {
+            this.images.put(fieldName, ImageSource.fromFile(filePath));
+            return this;
+        }
+
+        /** 插入圖片（檔案路徑來源，指定寬高） */
+        public Builder imageFromFile(String fieldName, String filePath, int width, int height) {
+            this.images.put(fieldName, ImageSource.fromFile(filePath, width, height));
+            return this;
+        }
+
+        /** 插入圖片（ImageSource 完整控制） */
+        public Builder image(String fieldName, ImageSource imageSource) {
+            this.images.put(fieldName, imageSource);
+            return this;
+        }
+
+        /** 設定所有圖片 */
+        public Builder images(Map<String, ImageSource> images) {
+            this.images = images != null ? new LinkedHashMap<>(images) : new LinkedHashMap<>();
+            return this;
+        }
+
         public ReportContext build() {
             ReportContext ctx = new ReportContext();
             ctx.setTemplatePath(templatePath);
@@ -109,6 +199,8 @@ public class ReportContext {
             ctx.setFileName(fileName);
             ctx.setParameters(parameters);
             ctx.setData(data);
+            ctx.setSheets(sheets);
+            ctx.setImages(images);
             return ctx;
         }
     }

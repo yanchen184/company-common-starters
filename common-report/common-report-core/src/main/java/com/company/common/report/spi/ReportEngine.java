@@ -3,6 +3,8 @@ package com.company.common.report.spi;
 import com.company.common.report.enums.OutputFormat;
 import com.company.common.report.enums.ReportEngineType;
 
+import java.util.List;
+
 /**
  * 報表引擎 SPI 介面
  *
@@ -28,4 +30,21 @@ public interface ReportEngine {
      * 此引擎是否支援指定的輸出格式
      */
     boolean supports(OutputFormat format);
+
+    /**
+     * 合併多個 context 產製一份報表
+     *
+     * <p>預設實作：單一 context 直接委派 generate()，多個 context 拋出不支援例外。
+     * 引擎可 override 此方法實作合併邏輯（例如 EasyExcel 每個 context 一個 Sheet）。
+     *
+     * @param contexts 多個產製上下文（至少一個）
+     * @return 合併後的產製結果
+     */
+    default ReportResult generateMerged(List<ReportContext> contexts) {
+        if (contexts.size() == 1) {
+            return generate(contexts.getFirst());
+        }
+        throw new UnsupportedOperationException(
+                "Engine " + getType() + " does not support merged generation");
+    }
 }

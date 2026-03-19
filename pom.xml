@@ -137,6 +137,11 @@
             </dependency>
             <dependency>
                 <groupId>com.company.common</groupId>
+                <artifactId>common-report-engine-jasper</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
                 <artifactId>common-report-autoconfigure</artifactId>
                 <version>${project.version}</version>
             </dependency>

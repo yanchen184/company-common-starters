@@ -25,6 +25,7 @@
         <module>common-report-core</module>
         <module>common-report-engine-easyexcel</module>
         <module>common-report-engine-xdocreport</module>
+        <module>common-report-engine-jasper</module>
         <module>common-report-autoconfigure</module>
         <module>common-report-spring-boot-starter</module>
         <module>common-report-test</module>
@@ -45,6 +46,11 @@
             <dependency>
                 <groupId>com.company.common</groupId>
                 <artifactId>common-report-engine-xdocreport</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.company.common</groupId>
+                <artifactId>common-report-engine-jasper</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

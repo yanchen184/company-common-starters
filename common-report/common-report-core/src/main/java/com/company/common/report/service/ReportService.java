@@ -1,5 +1,6 @@
 package com.company.common.report.service;
 
+import com.company.common.report.enums.OutputFormat;
 import com.company.common.report.enums.ReportEngineType;
 import com.company.common.report.spi.ReportContext;
 import com.company.common.report.spi.ReportEngine;
@@ -8,6 +9,7 @@ import com.company.common.response.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,17 +49,65 @@ public class ReportService {
     public ReportResult generate(ReportContext context) {
         log.info("--> report dispatch | engine={}, format={}", context.getEngineType(), context.getOutputFormat());
         validateTemplatePath(context.getTemplatePath());
-        ReportEngine engine = engineMap.get(context.getEngineType());
+        ReportEngine engine = resolveEngine(context.getEngineType(), context.getOutputFormat());
+        return engine.generate(context);
+    }
+
+    /**
+     * 合併多個 context 產製一份報表
+     *
+     * <p>所有 context 必須使用相同的引擎類型和輸出格式。
+     * 引擎決定如何合併（例如 EasyExcel：每個 context 一個 Sheet）。
+     *
+     * @param contexts 多個產製上下文
+     * @return 合併後的產製結果
+     */
+    public ReportResult generate(ReportContext... contexts) {
+        if (contexts == null || contexts.length == 0) {
+            throw BusinessException.badRequest("At least one ReportContext is required");
+        }
+        if (contexts.length == 1) {
+            return generate(contexts[0]);
+        }
+
+        // 驗證所有 context 的 engineType 和 outputFormat 一致
+        ReportEngineType engineType = contexts[0].getEngineType();
+        OutputFormat outputFormat = contexts[0].getOutputFormat();
+        for (int i = 1; i < contexts.length; i++) {
+            if (contexts[i].getEngineType() != engineType) {
+                throw BusinessException.badRequest(
+                        "All contexts must have the same engineType, got "
+                                + engineType + " and " + contexts[i].getEngineType());
+            }
+            if (contexts[i].getOutputFormat() != outputFormat) {
+                throw BusinessException.badRequest(
+                        "All contexts must have the same outputFormat, got "
+                                + outputFormat + " and " + contexts[i].getOutputFormat());
+            }
+        }
+
+        for (ReportContext ctx : contexts) {
+            validateTemplatePath(ctx.getTemplatePath());
+        }
+
+        log.info("--> report merged dispatch | engine={}, format={}, count={}",
+                engineType, outputFormat, contexts.length);
+
+        ReportEngine engine = resolveEngine(engineType, outputFormat);
+        return engine.generateMerged(Arrays.asList(contexts));
+    }
+
+    private ReportEngine resolveEngine(ReportEngineType engineType, OutputFormat outputFormat) {
+        ReportEngine engine = engineMap.get(engineType);
         if (engine == null) {
             throw BusinessException.badRequest(
-                    "No report engine found for type: " + context.getEngineType());
+                    "No report engine found for type: " + engineType);
         }
-        if (!engine.supports(context.getOutputFormat())) {
+        if (!engine.supports(outputFormat)) {
             throw BusinessException.badRequest(
-                    "Engine " + context.getEngineType()
-                            + " does not support format: " + context.getOutputFormat());
+                    "Engine " + engineType + " does not support format: " + outputFormat);
         }
-        return engine.generate(context);
+        return engine;
     }
 
     private void validateTemplatePath(String templatePath) {
