@@ -77,8 +77,9 @@ public class XDocReportEngine implements ReportEngine {
             IXDocReport report = XDocReportRegistry.getRegistry()
                     .loadReport(templateStream, TemplateEngineKind.Velocity);
 
-            // 2. 註冊圖片欄位 metadata
+            // 2. 註冊 metadata（圖片 + list 欄位）
             registerImageMetadata(report, context.getImages());
+            registerListMetadata(report, context.getData());
 
             // 3. 建立 context 並填入參數
             IContext velocityContext = report.createContext();
@@ -156,6 +157,14 @@ public class XDocReportEngine implements ReportEngine {
         return generate(merged);
     }
 
+    private FieldsMetadata getOrCreateMetadata(IXDocReport report) {
+        FieldsMetadata metadata = report.getFieldsMetadata();
+        if (metadata == null) {
+            metadata = report.createFieldsMetadata();
+        }
+        return metadata;
+    }
+
     /**
      * 註冊圖片欄位到 FieldsMetadata
      */
@@ -164,9 +173,31 @@ public class XDocReportEngine implements ReportEngine {
         if (images == null || images.isEmpty()) {
             return;
         }
-        FieldsMetadata metadata = report.createFieldsMetadata();
+        FieldsMetadata metadata = getOrCreateMetadata(report);
         for (String fieldName : images.keySet()) {
             metadata.addFieldAsImage(fieldName);
+        }
+    }
+
+    /**
+     * 註冊 list 資料欄位到 FieldsMetadata，讓表格行自動重複
+     */
+    @SuppressWarnings("unchecked")
+    private void registerListMetadata(IXDocReport report, List<?> data) throws XDocReportException {
+        if (data == null || data.isEmpty()) {
+            return;
+        }
+        FieldsMetadata metadata = getOrCreateMetadata(report);
+        Object first = data.getFirst();
+        if (first instanceof Map) {
+            // Map 模式：從 key 推導欄位名
+            Map<String, Object> map = (Map<String, Object>) first;
+            for (String key : map.keySet()) {
+                metadata.addFieldAsList("items." + key);
+            }
+        } else {
+            // POJO 模式
+            metadata.load("items", first.getClass(), true);
         }
     }
 
