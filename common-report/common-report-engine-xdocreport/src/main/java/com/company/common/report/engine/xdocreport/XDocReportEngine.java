@@ -84,8 +84,8 @@ public class XDocReportEngine implements ReportEngine {
             IXDocReport report = XDocReportRegistry.getRegistry()
                     .loadReport(templateStream, TemplateEngineKind.Velocity);
 
-            // 2. 註冊 metadata（圖片 + list 欄位）
-            registerImageMetadata(report, context.getImages());
+            // 2. 註冊 metadata（list 欄位）
+            // 注意：圖片不由 xDocReport 處理，改用 POI 後處理插入
             registerListMetadata(report, context.getData());
 
             // 3. 建立 context 並填入參數
@@ -100,10 +100,7 @@ public class XDocReportEngine implements ReportEngine {
                 velocityContext.put("items", context.getData());
             }
 
-            // 5. 註冊圖片到 Velocity context
-            registerImageProviders(velocityContext, context.getImages());
-
-            // 6. 根據輸出格式產製
+            // 5. 根據輸出格式產製
             if (context.getOutputFormat() == OutputFormat.PDF) {
                 Options options = Options.getTo(ConverterTypeTo.PDF);
                 report.convert(velocityContext, options, out);
@@ -138,30 +135,41 @@ public class XDocReportEngine implements ReportEngine {
     }
 
     /**
-     * 用 POI 後處理：找到「圖片書籤」段落，插入真實圖片取代純文字。
-     *
-     * <p>xDocReport 的 addFieldAsImage 對 POI 程式化產生的範本不可靠，
-     * 所以改用後處理方式：xDocReport 先做 Velocity 替換，
-     * 再用 POI 打開結果 docx，找到空段落（原 $logo 位置已被清空），插入圖片。
+     * 用 POI 後處理：找到 xDocReport 替換後的 IImageProvider.toString() 文字，
+     * 替換成真實圖片。同時找空段落（書籤被清空的位置）插入圖片。
      */
     private byte[] insertImagesWithPoi(byte[] docxBytes, Map<String, ImageSource> images) {
         try (XWPFDocument doc = new XWPFDocument(new ByteArrayInputStream(docxBytes))) {
+            // 對每張圖片，找到對應的 $fieldName 書籤，替換為圖片
             for (Map.Entry<String, ImageSource> entry : images.entrySet()) {
+                String bookmark = "$" + entry.getKey();
                 ImageSource src = entry.getValue();
                 byte[] imgBytes = src.resolveContent();
-                int width = src.getWidth() != null ? src.getWidth() : 200;
-                int height = src.getHeight() != null ? src.getHeight() : 50;
+                int width = src.getWidth() != null ? src.getWidth() : 150;
+                int height = src.getHeight() != null ? src.getHeight() : 80;
 
-                // 找第一個空段落（xDocReport 替換 $logo 後變成空的），插入圖片
-                for (XWPFParagraph para : doc.getParagraphs()) {
-                    if (para.getText().isBlank() && para.getRuns().isEmpty()) {
-                        para.setAlignment(ParagraphAlignment.CENTER);
-                        XWPFRun run = para.createRun();
-                        run.addPicture(new ByteArrayInputStream(imgBytes),
-                                XWPFDocument.PICTURE_TYPE_PNG,
-                                entry.getKey() + ".png",
-                                Units.toEMU(width), Units.toEMU(height));
-                        break;
+                // 搜尋文件段落
+                boolean found = replaceTextWithImage(doc.getParagraphs(),
+                        bookmark, imgBytes, entry.getKey(), width, height);
+
+                // 搜尋表格 cell
+                if (!found) {
+                    for (var table : doc.getTables()) {
+                        for (var row : table.getRows()) {
+                            for (var cell : row.getTableCells()) {
+                                found = replaceTextWithImage(cell.getParagraphs(),
+                                        bookmark, imgBytes, entry.getKey(), width, height);
+                                if (found) {
+                                    break;
+                                }
+                            }
+                            if (found) {
+                                break;
+                            }
+                        }
+                        if (found) {
+                            break;
+                        }
                     }
                 }
             }
@@ -173,6 +181,47 @@ public class XDocReportEngine implements ReportEngine {
             log.warn("Failed to insert images via POI, returning original docx", e);
             return docxBytes;
         }
+    }
+
+    private boolean replaceTextWithImage(List<XWPFParagraph> paragraphs,
+                                          String bookmark, byte[] imgBytes,
+                                          String name, int width, int height) {
+        for (XWPFParagraph para : paragraphs) {
+            String text = para.getText();
+            if (text != null && text.trim().equals(bookmark)) {
+                // 清除所有 runs
+                for (int r = para.getRuns().size() - 1; r >= 0; r--) {
+                    para.removeRun(r);
+                }
+                try {
+                    para.setAlignment(ParagraphAlignment.CENTER);
+                    XWPFRun run = para.createRun();
+                    run.addPicture(new ByteArrayInputStream(imgBytes),
+                            XWPFDocument.PICTURE_TYPE_PNG,
+                            name + ".png",
+                            Units.toEMU(width), Units.toEMU(height));
+                    return true;
+                } catch (Exception e) {
+                    log.warn("Failed to insert image '{}': {}", name, e.getMessage());
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isImageTarget(XWPFParagraph para, Map<String, ImageSource> images) {
+        String text = para.getText();
+        if (text == null) {
+            return false;
+        }
+        String trimmed = text.trim();
+        // 找 $fieldName 書籤（context.getImages() 的 key）
+        for (String key : images.keySet()) {
+            if (trimmed.equals("$" + key)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
