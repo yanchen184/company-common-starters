@@ -112,13 +112,15 @@ public class XDocReportEngine implements ReportEngine {
             throw new IllegalStateException("Failed to generate xDocReport", e);
         }
 
-        // 7. 後處理：用 POI 插入頂層圖片（如 logo）
-        if (context.getImages() != null && !context.getImages().isEmpty()
-                && context.getOutputFormat() == OutputFormat.DOCX) {
-            byte[] withImages = insertImagesWithPoi(out.toByteArray(), context.getImages());
+        // 7. 後處理（DOCX only）：插入圖片 + 清除空行
+        if (context.getOutputFormat() == OutputFormat.DOCX) {
+            byte[] processed = removeEmptyTableRows(out.toByteArray());
+            if (context.getImages() != null && !context.getImages().isEmpty()) {
+                processed = insertImagesWithPoi(processed, context.getImages());
+            }
             out.reset();
             try {
-                out.write(withImages);
+                out.write(processed);
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to write image result", e);
             }
@@ -135,8 +137,42 @@ public class XDocReportEngine implements ReportEngine {
     }
 
     /**
-     * 用 POI 後處理：找到 xDocReport 替換後的 IImageProvider.toString() 文字，
-     * 替換成真實圖片。同時找空段落（書籤被清空的位置）插入圖片。
+     * 移除表格中所有 cell 皆為空白的行（xDocReport 的 #foreach/#end 殘留空行）
+     */
+    private byte[] removeEmptyTableRows(byte[] docxBytes) {
+        try (XWPFDocument doc = new XWPFDocument(new ByteArrayInputStream(docxBytes))) {
+            boolean changed = false;
+            for (var table : doc.getTables()) {
+                for (int r = table.getNumberOfRows() - 1; r >= 0; r--) {
+                    var row = table.getRow(r);
+                    boolean allEmpty = true;
+                    for (var cell : row.getTableCells()) {
+                        String text = cell.getText();
+                        if (text != null && !text.isBlank()) {
+                            allEmpty = false;
+                            break;
+                        }
+                    }
+                    if (allEmpty) {
+                        table.removeRow(r);
+                        changed = true;
+                    }
+                }
+            }
+            if (!changed) {
+                return docxBytes;
+            }
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            doc.write(result);
+            return result.toByteArray();
+        } catch (IOException e) {
+            log.warn("Failed to remove empty rows, returning original", e);
+            return docxBytes;
+        }
+    }
+
+    /**
+     * 用 POI 後處理：找到 $fieldName 書籤文字，替換成真實圖片。
      */
     private byte[] insertImagesWithPoi(byte[] docxBytes, Map<String, ImageSource> images) {
         try (XWPFDocument doc = new XWPFDocument(new ByteArrayInputStream(docxBytes))) {
