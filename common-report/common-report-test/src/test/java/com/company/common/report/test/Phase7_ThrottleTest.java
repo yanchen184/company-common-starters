@@ -97,7 +97,7 @@ class Phase7_ThrottleTest {
         @DisplayName("allows requests within limit")
         void withinLimit_allowed() {
             ReportThrottleService throttle = new ReportThrottleService(
-                    redisTemplate, true, false, 10, 3, Map.of());
+                    redisTemplate, true, false, 10, 3, Map.of(), null);
 
             // 3 次都允許（上限 3）
             assertThatCode(() -> throttle.acquire("employee-list")).doesNotThrowAnyException();
@@ -109,7 +109,7 @@ class Phase7_ThrottleTest {
         @DisplayName("blocks request exceeding limit")
         void exceedLimit_blocked() {
             ReportThrottleService throttle = new ReportThrottleService(
-                    redisTemplate, true, false, 10, 2, Map.of());
+                    redisTemplate, true, false, 10, 2, Map.of(), null);
 
             // 前 2 次允許
             throttle.acquire("salary-report");
@@ -126,7 +126,7 @@ class Phase7_ThrottleTest {
         @DisplayName("release frees up a slot")
         void release_freesSlot() {
             ReportThrottleService throttle = new ReportThrottleService(
-                    redisTemplate, true, false, 10, 2, Map.of());
+                    redisTemplate, true, false, 10, 2, Map.of(), null);
 
             throttle.acquire("report-a");
             throttle.acquire("report-a");
@@ -146,7 +146,7 @@ class Phase7_ThrottleTest {
         @DisplayName("different reports have independent limits")
         void differentReports_independent() {
             ReportThrottleService throttle = new ReportThrottleService(
-                    redisTemplate, true, false, 10, 1, Map.of());
+                    redisTemplate, true, false, 10, 1, Map.of(), null);
 
             // report-a 佔滿
             throttle.acquire("report-a");
@@ -170,7 +170,7 @@ class Phase7_ThrottleTest {
         @DisplayName("blocks when global limit exceeded")
         void globalLimit_blocked() {
             ReportThrottleService throttle = new ReportThrottleService(
-                    redisTemplate, true, true, 3, 10, Map.of());
+                    redisTemplate, true, true, 3, 10, Map.of(), null);
 
             // 3 個不同報表各 1 個 = 全域 3 個
             throttle.acquire("report-a");
@@ -187,7 +187,7 @@ class Phase7_ThrottleTest {
         @DisplayName("global disabled — no global limit")
         void globalDisabled_noLimit() {
             ReportThrottleService throttle = new ReportThrottleService(
-                    redisTemplate, true, false, 2, 10, Map.of());
+                    redisTemplate, true, false, 2, 10, Map.of(), null);
 
             // 全域關閉，不會有全域限制
             for (int i = 0; i < 10; i++) {
@@ -211,7 +211,7 @@ class Phase7_ThrottleTest {
             // default = 10，但 heavy-report 客製為 1
             ReportThrottleService throttle = new ReportThrottleService(
                     redisTemplate, true, false, 10, 10,
-                    Map.of("heavy-report", 1));
+                    Map.of("heavy-report", 1), null);
 
             throttle.acquire("heavy-report");
 
@@ -230,7 +230,7 @@ class Phase7_ThrottleTest {
         @DisplayName("throttle disabled — all requests pass")
         void disabled_allPass() {
             ReportThrottleService throttle = new ReportThrottleService(
-                    redisTemplate, false, false, 1, 1, Map.of());
+                    redisTemplate, false, false, 1, 1, Map.of(), null);
 
             // 關閉限流，全部通過
             for (int i = 0; i < 100; i++) {
@@ -254,7 +254,7 @@ class Phase7_ThrottleTest {
             int totalRequests = 10;
 
             ReportThrottleService throttle = new ReportThrottleService(
-                    redisTemplate, true, false, 10, limit, Map.of());
+                    redisTemplate, true, false, 10, limit, Map.of(), null);
 
             AtomicInteger successCount = new AtomicInteger(0);
             AtomicInteger rejectCount = new AtomicInteger(0);
