@@ -193,6 +193,9 @@ public class ReportProperties {
         /** 個別報表客製化上限（key = reportName） */
         private java.util.Map<String, Integer> limits = new java.util.HashMap<>();
 
+        /** Redis key TTL（預設 10 分鐘，長時間報表需調大） */
+        private java.time.Duration keyTtl = java.time.Duration.ofMinutes(10);
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -231,6 +234,14 @@ public class ReportProperties {
 
         public void setLimits(java.util.Map<String, Integer> limits) {
             this.limits = limits;
+        }
+
+        public java.time.Duration getKeyTtl() {
+            return keyTtl;
+        }
+
+        public void setKeyTtl(java.time.Duration keyTtl) {
+            this.keyTtl = keyTtl;
         }
     }
 }

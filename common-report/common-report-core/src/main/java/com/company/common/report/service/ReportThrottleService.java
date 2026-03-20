@@ -20,27 +20,28 @@ public class ReportThrottleService {
     private static final Logger log = LoggerFactory.getLogger(ReportThrottleService.class);
     private static final String GLOBAL_KEY = "report:throttle:global";
     private static final String NAME_KEY_PREFIX = "report:throttle:name:";
-    private static final Duration KEY_TTL = Duration.ofMinutes(10);
-
     private final RedisTemplate<String, Object> redisTemplate;
     private final boolean enabled;
     private final boolean globalEnabled;
     private final int globalMaxConcurrent;
     private final int defaultMaxConcurrent;
     private final Map<String, Integer> limits;
+    private final Duration keyTtl;
 
     public ReportThrottleService(RedisTemplate<String, Object> redisTemplate,
                                   boolean enabled,
                                   boolean globalEnabled,
                                   int globalMaxConcurrent,
                                   int defaultMaxConcurrent,
-                                  Map<String, Integer> limits) {
+                                  Map<String, Integer> limits,
+                                  Duration keyTtl) {
         this.redisTemplate = redisTemplate;
         this.enabled = enabled;
         this.globalEnabled = globalEnabled;
         this.globalMaxConcurrent = globalMaxConcurrent;
         this.defaultMaxConcurrent = defaultMaxConcurrent;
         this.limits = limits;
+        this.keyTtl = keyTtl != null ? keyTtl : Duration.ofMinutes(10);
     }
 
     /**
@@ -57,7 +58,7 @@ public class ReportThrottleService {
         // 1. 全域限流
         if (globalEnabled) {
             Long globalCount = redisTemplate.opsForValue().increment(GLOBAL_KEY);
-            redisTemplate.expire(GLOBAL_KEY, KEY_TTL);
+            redisTemplate.expire(GLOBAL_KEY, keyTtl);
             if (globalCount != null && globalCount > globalMaxConcurrent) {
                 redisTemplate.opsForValue().decrement(GLOBAL_KEY);
                 log.warn("--> throttle BLOCKED | global limit reached: {}/{}", globalCount - 1, globalMaxConcurrent);
@@ -70,7 +71,7 @@ public class ReportThrottleService {
         String nameKey = NAME_KEY_PREFIX + reportName;
         int maxConcurrent = limits.getOrDefault(reportName, defaultMaxConcurrent);
         Long nameCount = redisTemplate.opsForValue().increment(nameKey);
-        redisTemplate.expire(nameKey, KEY_TTL);
+        redisTemplate.expire(nameKey, keyTtl);
         if (nameCount != null && nameCount > maxConcurrent) {
             redisTemplate.opsForValue().decrement(nameKey);
             // 如果全域也加了，要退回
@@ -101,13 +102,13 @@ public class ReportThrottleService {
         Long nameCount = redisTemplate.opsForValue().decrement(nameKey);
         // 防止計數器變成負數
         if (nameCount != null && nameCount < 0) {
-            redisTemplate.opsForValue().set(nameKey, 0, KEY_TTL);
+            redisTemplate.opsForValue().set(nameKey, 0, keyTtl);
         }
 
         if (globalEnabled) {
             Long globalCount = redisTemplate.opsForValue().decrement(GLOBAL_KEY);
             if (globalCount != null && globalCount < 0) {
-                redisTemplate.opsForValue().set(GLOBAL_KEY, 0, KEY_TTL);
+                redisTemplate.opsForValue().set(GLOBAL_KEY, 0, keyTtl);
             }
         }
 

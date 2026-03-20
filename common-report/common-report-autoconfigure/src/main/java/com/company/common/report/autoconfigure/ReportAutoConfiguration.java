@@ -43,7 +43,7 @@ public class ReportAutoConfiguration {
                                                        ReportProperties properties) {
         ReportProperties.Throttle t = properties.getThrottle();
         return new ReportThrottleService(redisTemplate, t.isEnabled(), t.isGlobalEnabled(),
-                t.getGlobalMaxConcurrent(), t.getDefaultMaxConcurrent(), t.getLimits());
+                t.getGlobalMaxConcurrent(), t.getDefaultMaxConcurrent(), t.getLimits(), t.getKeyTtl());
     }
 
     @Bean
