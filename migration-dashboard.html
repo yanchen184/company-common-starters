@@ -81,7 +81,7 @@
 <body>
 <div class="container">
   <h1>wez-grails5 → Spring Boot 遷移儀表板</h1>
-  <p class="subtitle">43 個模組遷移進度追蹤 ｜ 更新於 2026-03-19</p>
+  <p class="subtitle">44 個模組遷移進度追蹤 ｜ 更新於 2026-03-23</p>
   <div class="stats" id="stats"></div>
   <div class="progress-wrap">
     <div class="progress-bar" id="progressBar"></div>
@@ -191,11 +191,11 @@ const modules = [
     detail:{ pending:{ desc:'系統公告/新聞發佈管理。', files:['BoardNews.groovy','BoardReadable.groovy'], deps:['wez-attachment 1.1.1','wez-core','wez-security'], tables:['BOARD_NEWS','BOARD_READABLE'], features:['公告 CRUD','使用者閱讀狀態追蹤','公告發佈管理','附件支持'], usage:'中度使用', recommendation:'Spring Data JPA + Repository + @RestController。', days:'2 天' }}
   },
   { name:'wez-email', group:'backend', purpose:'郵件功能', status:'skip', springBoot:'spring-boot-starter-mail', target:'skip', detail:null },
-  { name:'wez-notification', group:'backend', purpose:'通知系統', status:'done', springBoot:'common-notification-starter', target:'common',
+  { name:'wez-notification', group:'backend', purpose:'通知系統', status:'done', springBoot:'common-notification-spring-boot-starter', target:'common',
     detail: {
       original: { features: ['多通道通知（EMAIL + WebSocket STOMP）','使用者通知偏好設定（SauserNotifyType）','STOMP 即時推播（透過 websocket-proxy）','批次儲存通知紀錄','通知已讀狀態管理','加密使用者 ID 傳輸'], files: ['WezNotificationService','WezEmailNotificationService','WezWebsocketStompNotificationService','SauserNotifyType','Notify Domain','WezBatchData'], deps: ['wez-core','wez-security','wez-email'], tables: ['notify','sauser_notify_type'] },
-      improvements: ['寄失敗就沒了 → 自動重試（可配置最大次數，預設 3 次）','無狀態追蹤 → NotificationLog（PENDING → SENDING → SENT / FAILED）','無排程發送 → 支援 sendAt 延遲/定時發送','switch 硬編碼通道 → SPI NotificationChannel 可插拔','直接傳 HTML 字串 → Thymeleaf 範本引擎','new Thread() → 獨立線程池 + @Async','無清理機制 → 自動清理過期紀錄（預設 90 天）','wez-email 獨立依賴 → 直接用 spring-boot-starter-mail（不需額外 starter）'],
-      final: { features: ['多通道 SPI（EMAIL / WEBSOCKET / 自訂 Channel）','排程發送（sendAt 延遲/定時，排程器每 30 秒掃描）','失敗自動重試（可配置次數，每 5 分鐘掃描重試）','狀態追蹤（PENDING → SENDING → SENT / FAILED）','Thymeleaf 郵件範本（內容和格式分離）','非同步執行（獨立線程池 + CallerRunsPolicy）','自動清理過期紀錄（預設 90 天，每天凌晨 3 點）','RecipientResolver SPI（消費端實作使用者查找）','通知分類（category：SYSTEM / APPROVAL / ALERT）','NotificationLog Entity + Repository（完整 CRUD）'], config: 'common.notification.enabled / from-address / default-channels / max-retry / retention-days / async.*' }
+      improvements: ['寄失敗就沒了 → 自動重試（可配置最大次數，預設 3 次）','無狀態追蹤 → NotificationLog（PENDING → SENDING → SENT / FAILED）','無排程發送 → 支援 sendAt 延遲/定時發送','switch 硬編碼通道 → SPI NotificationChannel 可插拔','直接傳 HTML 字串 → Thymeleaf 範本引擎','new Thread() → 獨立線程池 + @Async','無清理機制 → 自動清理過期紀錄（預設 90 天）','wez-email 獨立依賴 → 直接用 spring-boot-starter-mail（不需額外 starter）','無 CC/BCC → Email CC/BCC 副本寄送','無批次追蹤 → batchId 批次分組查詢','無業務關聯 → refType + refId 業務追溯（@PrePersist 驗證成對一致性）'],
+      final: { features: ['多通道 SPI（EMAIL / WEBSOCKET / 自訂 Channel）','排程發送（sendAt 延遲/定時，排程器每 30 秒掃描）','失敗自動重試（可配置次數，每 5 分鐘掃描重試）','狀態追蹤（PENDING → SENDING → SENT / FAILED）','Thymeleaf 郵件範本（內容和格式分離）','非同步執行（獨立線程池 + CallerRunsPolicy）','自動清理過期紀錄（預設 90 天，每天凌晨 3 點）','RecipientResolver SPI（消費端實作使用者查找）','通知分類（category：SYSTEM / APPROVAL / ALERT）','NotificationLog Entity + Repository（完整 CRUD）','Email CC/BCC 副本寄送（RecipientResolver 解析）','批次 ID 分組查詢（batchId + countByBatchIdGroupByStatus 統計）','業務關聯追溯（refType + refId，@PrePersist 驗證成對一致性）'], config: 'common.notification.enabled / from-address / default-channels / max-retry / retention-days / async.*' }
     }
   },
   { name:'wez-report-bug', group:'backend', purpose:'線上 Bug 回報', status:'pending', springBoot:'—', complexity:'medium', target:'business',
@@ -204,12 +204,8 @@ const modules = [
   { name:'wez-diagram-family', group:'backend', purpose:'家族樹圖', status:'pending', springBoot:'—', complexity:'medium', target:'business',
     detail:{ pending:{ desc:'家族關係圖。JSON 存儲 + 版本歷程 + 圖片上傳。', files:['FamilyDiagram.groovy','FamilyDiagramLog.groovy','FamilyDiagramService'], deps:['wez-attachment 1.1.1','wez-core','wez-security'], tables:['FD_FAMILY_DIAGRAM','FD_FAMILY_DIAGRAM_LOG','ATTACHMENT'], features:['圖形 JSON 存儲','版本歷程管理','圖片上傳（JPG/PNG/GIF）','可配置存儲模式'], usage:'中度使用', recommendation:'Spring Data JPA + Spring Data Audit。', days:'3 天' }}
   },
-  { name:'wez-diagram-sign', group:'backend', purpose:'電子簽名板', status:'done', springBoot:'common-signature-spring-boot-starter', target:'business',
-    detail: {
-      original: { features: ['Fabric.js Canvas 手寫簽名','Canvas JSON 序列化/反序列化','簽名截圖 PNG 存附件','tabName + refid 組合鍵關聯業務資料','簽名預覽嵌入（_preview.gsp）','支援繪圖模式（自由畫筆、線條、文字、群組）'], files: ['SignDiagram.groovy','SignDiagramService.groovy','SignDiagramController.groovy','signDiagram.js（Fabric.js 封裝）'], deps: ['wez-attachment 1.1.1','wez-core','Fabric.js'], tables: ['SIGN_DIAGRAM','ATTACHMENT'] },
-      improvements: ['tabName/refid → ownerType/ownerId（語意化命名）','附件每次 query 查找 → attachmentId 直接存在 Entity 上','無版本控制 → @Version 樂觀鎖','無審計 → AuditableEntity 自動 createdBy/lastModifiedBy','GSP 嵌入式 → REST API + React Canvas 前端','Grails Service → Spring Boot AutoConfiguration 自動裝配','ownerType + ownerId 無唯一約束 → 唯一索引防重複'],
-      final: { features: ['SignatureDiagram Entity（ownerType + ownerId 唯一索引 + attachmentId）','SignatureService（save/findByOwner/delete，自動管理附件生命週期）','SignatureController REST API（POST 存檔 / GET 查詢 / DELETE 刪除）','multipart/form-data 接收 Canvas JSON + PNG 截圖','舊附件自動軟刪除再上傳新附件','附件 ownerType 自動加 SIGN_ 前綴','@ConditionalOnBean(AttachmentService) 自動裝配','前端 React Canvas Demo 頁面'], config: 'common.signature.enabled / common.signature.api-prefix' }
-    }
+  { name:'wez-diagram-sign', group:'backend', purpose:'電子簽名板', status:'pending', springBoot:'common-signature-spring-boot-starter', complexity:'medium', target:'business',
+    detail:{ pending:{ desc:'Fabric.js Canvas 手寫簽名。Canvas JSON 序列化 + PNG 截圖存附件 + 業務資料關聯。', files:['SignDiagram.groovy','SignDiagramService.groovy','SignDiagramController.groovy','signDiagram.js（Fabric.js 封裝）'], deps:['wez-attachment 1.1.1','wez-core','Fabric.js'], tables:['SIGN_DIAGRAM','ATTACHMENT'], features:['Canvas 手寫簽名（自由畫筆、線條、文字、群組）','Canvas JSON 序列化/反序列化','簽名截圖 PNG 存附件','tabName + refid 組合鍵關聯業務資料','簽名預覽嵌入（_preview.gsp）'], usage:'中度使用', recommendation:'轉為 SignatureDiagram Entity + SignatureService + REST API。ownerType/ownerId 語意化命名 + 唯一索引。附件生命週期由 common-attachment-starter 管理。前端用 React Canvas。' , days:'3 天' }}
   },
   { name:'wez-log-viewer', group:'backend', purpose:'Log 查詢檢視', status:'pending', springBoot:'—', complexity:'medium', target:'business',
     detail:{ pending:{ desc:'系統日誌查詢。多過濾條件 + SQL 方言適配 + 權限控管。', files:['ReportLogService','ReportLogController','Bs500Controller','Bs800Controller'], deps:['wez-core','wez-security','wez-email'], tables:['REPORT_LOG','REPORT_LOG_BLOB'], features:['完整日誌查詢 + 個人日誌','多過濾條件','跨資料庫方言（PostgreSQL/MSSQL）','非管理員僅看自己'], usage:'高度活躍', recommendation:'Spring Data JPA Specification + @Query native SQL。', days:'3 天' }}
@@ -268,7 +264,7 @@ const modules = [
     detail: {
       original: { features: ['報表定義管理（ReportItem）','報表匯出歷程（ReportLog + ReportLogBlob）','同步/非同步匯出','JODConverter 文件轉檔（LibreOffice）','角色權限控管','動態資料模型'], files: ['ReportItem.groovy','ReportLog.groovy','ReportLogBlob.groovy','ReportTransferService'], deps: ['wez-base','wez-logs','tika'], tables: ['REPORT_ITEM','REPORT_LOG','REPORT_LOG_BLOB'] },
       improvements: ['Map 傳參 → ReportContext.builder() 型別安全','簡單狀態 → 狀態機（PENDING→PROCESSING→COMPLETED/FAILED，終態不可轉移）','Session 下載 → UUID + Database 持久化','無路徑防護 → 路徑遍歷保護（禁 .. \\ :// %）','無並發控制 → @Version 樂觀鎖','BLOB 耦合 → ReportLogBlob 分離表（查詢不載入大檔案）','無 SPI → ReportEngine 可插拔介面（加依賴自動註冊）','無批次清理 → JPQL 批次刪除','無測試 → 39 個 TDD 測試'],
-      final: { features: ['SPI ReportEngine 可插拔引擎（含 generateMerged default method）','ReportContext.builder() — sheets / images / pivots 擴展欄位','SheetData（多 Sheet）/ ImageSource（圖片）/ PivotConfig（樞紐分析表）DTO','非同步產製狀態機（PENDING→PROCESSING→COMPLETED/FAILED）','UUID 下載（Database 持久化）','ReportLog + ReportLogBlob 分離（延遲載入）','路徑遍歷防護 + 50MB 限制','@Version 樂觀鎖','執行緒池配置（core/max/queue + CallerRunsPolicy）','5 個 REST 端點（generate / generate-async / status / download / engines）'], config: 'common.report.enabled / storage.type / async.core-pool-size / async.max-pool-size / cleanup.*' }
+      final: { features: ['SPI ReportEngine 可插拔引擎（含 generateMerged default method）','ReportContext.builder() — sheets / images / pivots 擴展欄位','SheetData（多 Sheet）/ ImageSource（圖片）/ PivotConfig（樞紐分析表）DTO','非同步產製狀態機（PENDING→PROCESSING→COMPLETED/FAILED）','UUID 下載（Database 持久化）','ReportLog + ReportLogBlob 分離（延遲載入）','路徑遍歷防護 + 50MB 限制','@Version 樂觀鎖','執行緒池配置（core/max/queue + CallerRunsPolicy）','5 個 REST 端點（generate / generate-async / status / download / engines）','Redis 分散式限流（ReportThrottleService，控制報表併發數）','Pivot Table 記憶體優化（temp file + memory-mapped IO，降低 35% 記憶體）'], config: 'common.report.enabled / storage.type / async.core-pool-size / async.max-pool-size / cleanup.* / throttle.enabled / throttle.max-concurrent / throttle.key-ttl' }
     }
   },
   { name:'wez-report-easyexcel', group:'plugin', purpose:'報表引擎：EasyExcel', status:'done', springBoot:'common-report-engine-easyexcel', target:'common',
@@ -283,6 +279,14 @@ const modules = [
       original: { features: ['XDocReport Word/ODT 生成','Velocity/FreeMarker 範本引擎','圖片欄位處理','HTML 欄位（特殊字元處理）','文件格式轉換','非同步/同步匯出','報表日誌'], files: ['XdocReportExportService'], deps: ['xdocreport 2.1.0','xdocreport-template（Velocity/FreeMarker）'], tables: [] },
       improvements: ['Grails Service → Spring Boot ReportEngine SPI 實作','與 EasyExcel 共用 ReportContext + 狀態機','HTML 欄位處理更穩定'],
       final: { features: ['支援 DOCX / PDF / ODT','Word 範本 + Velocity 變數替換（#foreach 表格行重複）','圖片插入（POI 後處理 — 支援表格 cell 和段落）','多 Context 合併產製（generateMerged）','空行自動清除（removeEmptyTableRows）','適合合約、公文、通知書','實作 ReportEngine SPI（加依賴自動註冊）','同步 + 非同步產製'], config: '加入依賴即生效，無額外配置' }
+    }
+  },
+
+  { name:'wez-response（新建）', group:'plugin', purpose:'統一回應格式', status:'done', springBoot:'common-response-spring-boot-starter', target:'common',
+    detail: {
+      original: { features: ['Grails 無統一回應格式，各 Controller 自行包裝','各 Controller 自己 try-catch 處理異常','錯誤碼散落各處'], files: ['各 Controller 分散處理'], deps: [], tables: [] },
+      improvements: ['各 Controller 自己包 {success, data} → ApiResponse<T> 自動包裝','各 Controller 自己 try-catch → GlobalExceptionHandler 12 種異常統一處理','散落的錯誤字串 → ErrorCode 介面 + A/B/C/D 分類體系','無分頁封裝 → PageResponse<T> 統一分頁格式','無驗證錯誤封裝 → field + message + rejectedValue 自動組裝'],
+      final: { features: ['ApiResponse<T> 統一回應封裝（成功/失敗/驗證錯誤）','PageResponse<T> 分頁回應','ErrorCode 介面 + CommonErrorCode / UserErrorCode / OrderErrorCode / FileErrorCode','BusinessException 業務異常（語意化靜態工廠方法）','GlobalExceptionHandler 全局異常處理（12 種異常）','GlobalResponseAdvice 自動回應包裝（含 String 特殊處理）','路徑排除機制（預設 /actuator/**）','零配置，引入依賴即生效'], config: 'common.response.exclude-patterns' }
     }
   },
 
