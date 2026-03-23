@@ -62,7 +62,7 @@ public class AttachmentAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(AttachmentStorageStrategy.class)
-    @ConditionalOnProperty(name = "wez.attachment.storage-type", havingValue = "DATABASE")
+    @ConditionalOnProperty(name = "common.attachment.storage-type", havingValue = "DATABASE")
     public AttachmentStorageStrategy databaseBlobStorageStrategy(
             AttachmentBlobRepository blobRepository) {
         return new DatabaseBlobStorageStrategy(blobRepository);
@@ -113,7 +113,7 @@ public class AttachmentAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(AttachmentController.class)
-    @ConditionalOnProperty(name = "wez.attachment.web.enabled", havingValue = "true")
+    @ConditionalOnProperty(name = "common.attachment.web.enabled", havingValue = "true")
     @ConditionalOnClass(name = "org.springframework.web.servlet.DispatcherServlet")
     public AttachmentController attachmentController(AttachmentService attachmentService) {
         return new AttachmentController(attachmentService);

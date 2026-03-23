@@ -79,7 +79,7 @@ public class MyAttachmentAccessPolicy implements AttachmentAccessPolicy {
 ### 3. 設定 application.yml
 
 ```yaml
-wez:
+common:
   attachment:
     storage-type: filesystem
     storage-path: ./attachments
@@ -220,7 +220,7 @@ malware.exe.pdf → 檢測到 .exe. 在中間 → 拒絕
 #### Filesystem（預設）
 
 ```yaml
-wez:
+common:
   attachment:
     storage-type: filesystem
     storage-path: /data/attachments
@@ -232,7 +232,7 @@ wez:
 #### Database BLOB
 
 ```yaml
-wez:
+common:
   attachment:
     storage-type: database
 ```
@@ -324,7 +324,7 @@ public void onUploaded(AttachmentUploadedEvent event) {
 ### application.yml
 
 ```yaml
-wez:
+common:
   attachment:
     storage-type: filesystem        # 儲存策略：filesystem | database（預設 filesystem）
     storage-path: ./attachments     # 儲存路徑，filesystem 模式用（預設 ./attachments）
@@ -401,7 +401,7 @@ common-attachment-spring-boot-starter/
 │   │
 │   ├── config/                                     ← 自動配置
 │   │   ├── AttachmentAutoConfiguration.java        # @AutoConfiguration，條件式註冊所有 Bean
-│   │   └── AttachmentProperties.java               # @ConfigurationProperties(prefix = "wez.attachment")
+│   │   └── AttachmentProperties.java               # @ConfigurationProperties(prefix = "common.attachment")
 │   │
 │   ├── core/                                       ← 核心業務
 │   │   ├── AttachmentService.java                  # 主 facade：upload/download/softDelete/findByOwner/findById
@@ -443,7 +443,7 @@ common-attachment-spring-boot-starter/
 │   │       └── AttachmentBlobRepository.java       # JpaRepository
 │   │
 │   ├── web/                                        ← REST Controller（opt-in）
-│   │   └── AttachmentController.java               # @ConditionalOnProperty(wez.attachment.web.enabled=true)
+│   │   └── AttachmentController.java               # @ConditionalOnProperty(common.attachment.web.enabled=true)
 │   │
 │   └── event/                                      ← Spring Application Event
 │       ├── AttachmentUploadedEvent.java            # attachmentId, storedFilename, mimeType, fileSize

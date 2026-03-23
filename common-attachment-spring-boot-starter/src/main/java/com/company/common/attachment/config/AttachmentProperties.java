@@ -10,7 +10,7 @@ import java.util.Set;
 
 @Getter
 @Setter
-@ConfigurationProperties(prefix = "wez.attachment")
+@ConfigurationProperties(prefix = "common.attachment")
 public class AttachmentProperties {
 
     /** 儲存策略：FILESYSTEM 或 DATABASE */

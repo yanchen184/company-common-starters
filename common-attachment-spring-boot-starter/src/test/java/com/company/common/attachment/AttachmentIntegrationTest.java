@@ -45,7 +45,7 @@ class AttachmentIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("wez.attachment.storage-path", () -> tempDir.toString());
+        registry.add("common.attachment.storage-path", () -> tempDir.toString());
         registry.add("spring.datasource.url", () -> "jdbc:h2:mem:attachment-test;DB_CLOSE_DELAY=-1");
         registry.add("spring.datasource.driver-class-name", () -> "org.h2.Driver");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");

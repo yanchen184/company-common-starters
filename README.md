@@ -251,7 +251,7 @@ common:
       max-pool-size: 5
 
 # === 附件 ===
-wez:
+common:
   attachment:
     storage-type: filesystem       # filesystem | database
     upload-path: ./uploads
