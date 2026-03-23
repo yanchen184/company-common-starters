@@ -49,8 +49,9 @@ public class ReportAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ReportService reportService(List<ReportEngine> engines,
-                                       @Autowired(required = false) ReportThrottleService throttleService) {
-        return new ReportService(engines, throttleService);
+                                       @Autowired(required = false) ReportThrottleService throttleService,
+                                       ReportProperties reportProperties) {
+        return new ReportService(engines, throttleService, reportProperties.getAllowedTemplatePrefixes());
     }
 
     @Bean

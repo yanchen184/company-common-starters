@@ -61,37 +61,17 @@ public class NotificationService {
         String renderedContent = renderContent(message);
         Set<String> channels = resolveChannels(message);
 
+        List<NotificationLog> entries = new java.util.ArrayList<>();
         for (Long recipientId : message.getTo()) {
             for (String channelName : channels) {
                 NotificationLog entry = createLogEntry(recipientId, channelName, message, renderedContent);
                 entry.setStatus(NotificationStatus.SENDING);
-                entry = logRepository.save(entry);
-                deliverImmediate(entry);
+                entries.add(entry);
             }
         }
-    }
-
-    private void deliverImmediate(NotificationLog entry) {
-        NotificationChannel channel = channelMap.get(entry.getChannel());
-        if (channel == null) {
-            log.error("Unknown notification channel: {}", entry.getChannel());
-            entry.setStatus(NotificationStatus.FAILED);
-            entry.setErrorMessage("Unknown channel: " + entry.getChannel());
-            logRepository.save(entry);
-            return;
-        }
-        try {
-            channel.send(entry);
-            entry.setStatus(NotificationStatus.SENT);
-            entry.setSentAt(Instant.now());
-            logRepository.save(entry);
-        } catch (Exception e) {
-            log.error("Failed to send notification via {} to user {}: {}",
-                    entry.getChannel(), entry.getRecipientId(), e.getMessage());
-            entry.setStatus(NotificationStatus.FAILED);
-            entry.setErrorMessage(truncate(e.getMessage(), 1000));
-            entry.setRetryCount(entry.getRetryCount() + 1);
-            logRepository.save(entry);
+        List<NotificationLog> saved = logRepository.saveAll(entries);
+        for (NotificationLog entry : saved) {
+            deliver(entry);
         }
     }
 
@@ -122,7 +102,7 @@ public class NotificationService {
      * Deliver a single notification log entry.
      */
     @Transactional
-    public void deliverSingle(NotificationLog entry) {
+    public void deliver(NotificationLog entry) {
         NotificationChannel channel = channelMap.get(entry.getChannel());
         if (channel == null) {
             log.error("Unknown notification channel: {}", entry.getChannel());

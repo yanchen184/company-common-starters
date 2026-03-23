@@ -5,13 +5,13 @@ import com.company.common.response.config.ResponseProperties;
 import com.company.common.response.dto.ApiResponse;
 import com.company.common.response.dto.FieldError;
 import com.company.common.response.exception.BusinessException;
+import com.company.common.response.util.PathExcludeHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -27,7 +27,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 通用全局異常處理器（最低優先級）
@@ -40,7 +39,6 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-    private static final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     private final ResponseProperties properties;
 
@@ -52,11 +50,8 @@ public class GlobalExceptionHandler {
      * 檢查請求路徑是否在排除清單中，若是則 re-throw 交給 Spring 預設處理
      */
     private void reThrowIfExcluded(HttpServletRequest request, Exception ex) throws Exception {
-        String uri = request.getRequestURI();
-        for (String pattern : properties.getExcludePaths()) {
-            if (pathMatcher.match(pattern, uri)) {
-                throw ex;
-            }
+        if (PathExcludeHelper.isExcluded(request.getRequestURI(), properties.getExcludePaths())) {
+            throw ex;
         }
     }
 
@@ -91,7 +86,7 @@ public class GlobalExceptionHandler {
                         error.getField(),
                         error.getDefaultMessage(),
                         error.getRejectedValue()))
-                .collect(Collectors.toList());
+                .toList();
 
         log.warn("ValidationException: {} {} - errors={}",
                 request.getMethod(), request.getRequestURI(), errors);
@@ -114,7 +109,7 @@ public class GlobalExceptionHandler {
                         error.getField(),
                         error.getDefaultMessage(),
                         error.getRejectedValue()))
-                .collect(Collectors.toList());
+                .toList();
 
         log.warn("BindException: {} {} - errors={}",
                 request.getMethod(), request.getRequestURI(), errors);
@@ -238,7 +233,7 @@ public class GlobalExceptionHandler {
         log.warn("IllegalArgument: {} {} - {}",
                 request.getMethod(), request.getRequestURI(), ex.getMessage());
 
-        ApiResponse<Void> response = ApiResponse.error(CommonErrorCode.BAD_REQUEST, ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(CommonErrorCode.BAD_REQUEST, "請求參數不合法");
         return ResponseEntity.badRequest().body(response);
     }
 

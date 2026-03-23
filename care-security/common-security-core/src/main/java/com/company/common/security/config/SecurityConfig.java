@@ -1,5 +1,6 @@
 package com.company.common.security.config;
 
+import com.company.common.security.autoconfigure.CareSecurityProperties;
 import com.company.common.security.security.CrudPermissionEvaluator;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
@@ -17,11 +18,14 @@ public class SecurityConfig {
 
     private final UrlBasedCorsConfigurationSource corsConfigurationSource;
     private final CrudPermissionEvaluator crudPermissionEvaluator;
+    private final CareSecurityProperties securityProperties;
 
     public SecurityConfig(UrlBasedCorsConfigurationSource corsConfigurationSource,
-                          CrudPermissionEvaluator crudPermissionEvaluator) {
+                          CrudPermissionEvaluator crudPermissionEvaluator,
+                          CareSecurityProperties securityProperties) {
         this.corsConfigurationSource = corsConfigurationSource;
         this.crudPermissionEvaluator = crudPermissionEvaluator;
+        this.securityProperties = securityProperties;
     }
 
     public SecurityFilterChain authorizationServerFilterChain(HttpSecurity http) {
@@ -46,20 +50,19 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/captcha", "/api/auth/captcha/audio/**").permitAll()
-                        .requestMatchers("/api/auth/refresh").permitAll()
-                        .requestMatchers("/api/auth/otp/verify").permitAll()
-                        .requestMatchers("/api/auth/cert/challenge", "/api/auth/cert/login", "/api/auth/cert/login-token").permitAll()
+                .authorizeHttpRequests(authorize -> {
+                    String[] publicEndpoints = securityProperties.getWeb().getPublicEndpoints()
+                            .toArray(String[]::new);
+                    authorize
+                        .requestMatchers(publicEndpoints).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
                         .requestMatchers("/api/auth/switch-user").hasRole("ADMIN")
                         .requestMatchers("/api/auth/exit-switch-user").authenticated()
                         .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "USER_ADMIN")
                         .requestMatchers("/api/roles/**").hasRole("ADMIN")
                         .requestMatchers("/api/permissions/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated();
+                })
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter())

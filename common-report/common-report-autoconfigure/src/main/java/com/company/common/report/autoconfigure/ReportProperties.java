@@ -55,8 +55,14 @@ public class ReportProperties {
         this.cleanup = cleanup;
     }
 
+    /** 允許的範本路徑前綴 */
+    private java.util.List<String> allowedTemplatePrefixes = java.util.List.of("templates/");
+
     /** 限流設定 */
     private Throttle throttle = new Throttle();
+
+    public java.util.List<String> getAllowedTemplatePrefixes() { return allowedTemplatePrefixes; }
+    public void setAllowedTemplatePrefixes(java.util.List<String> allowedTemplatePrefixes) { this.allowedTemplatePrefixes = allowedTemplatePrefixes; }
 
     public Throttle getThrottle() { return throttle; }
     public void setThrottle(Throttle throttle) { this.throttle = throttle; }

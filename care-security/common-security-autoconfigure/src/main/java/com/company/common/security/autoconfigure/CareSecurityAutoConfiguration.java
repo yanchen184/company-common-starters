@@ -343,8 +343,9 @@ public class CareSecurityAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(SecurityConfig.class)
     public SecurityConfig securityConfig(UrlBasedCorsConfigurationSource corsConfigurationSource,
-                                          CrudPermissionEvaluator crudPermissionEvaluator) {
-        return new SecurityConfig(corsConfigurationSource, crudPermissionEvaluator);
+                                          CrudPermissionEvaluator crudPermissionEvaluator,
+                                          CareSecurityProperties securityProperties) {
+        return new SecurityConfig(corsConfigurationSource, crudPermissionEvaluator, securityProperties);
     }
 
     @Configuration

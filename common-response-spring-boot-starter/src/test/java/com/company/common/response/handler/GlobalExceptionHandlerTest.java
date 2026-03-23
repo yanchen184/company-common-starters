@@ -83,7 +83,7 @@ class GlobalExceptionHandlerTest {
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getCode()).isEqualTo(CommonErrorCode.BAD_REQUEST.getCode());
-            assertThat(response.getBody().getMessage()).isEqualTo("id 不可為負數");
+            assertThat(response.getBody().getMessage()).isEqualTo("請求參數不合法");
         }
     }
 

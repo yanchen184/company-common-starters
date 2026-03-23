@@ -2,6 +2,7 @@ package com.company.common.response.handler;
 
 import com.company.common.response.config.ResponseProperties;
 import com.company.common.response.dto.ApiResponse;
+import com.company.common.response.util.PathExcludeHelper;
 import tools.jackson.databind.json.JsonMapper;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
@@ -9,7 +10,6 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
@@ -20,8 +20,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
  */
 @RestControllerAdvice
 public class GlobalResponseAdvice implements ResponseBodyAdvice<Object> {
-
-    private static final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     private final ResponseProperties properties;
     private final JsonMapper jsonMapper;
@@ -46,10 +44,8 @@ public class GlobalResponseAdvice implements ResponseBodyAdvice<Object> {
         // 排除路徑不包裝
         if (request instanceof ServletServerHttpRequest servletRequest) {
             String uri = servletRequest.getServletRequest().getRequestURI();
-            for (String pattern : properties.getExcludePaths()) {
-                if (pathMatcher.match(pattern, uri)) {
-                    return body;
-                }
+            if (PathExcludeHelper.isExcluded(uri, properties.getExcludePaths())) {
+                return body;
             }
         }
 

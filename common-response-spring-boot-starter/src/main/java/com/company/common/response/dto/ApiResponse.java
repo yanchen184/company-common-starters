@@ -20,6 +20,7 @@ public class ApiResponse<T> {
     private T data;
     private List<FieldError> errors;
 
+    /** Jackson 反序列化用 */
     public ApiResponse() {
     }
 
@@ -28,6 +29,14 @@ public class ApiResponse<T> {
         this.code = code;
         this.message = message;
         this.data = data;
+    }
+
+    private ApiResponse(boolean success, String code, String message, T data, List<FieldError> errors) {
+        this.success = success;
+        this.code = code;
+        this.message = message;
+        this.data = data;
+        this.errors = errors;
     }
 
     // ===== 成功 =====
@@ -65,52 +74,30 @@ public class ApiResponse<T> {
     // ===== 驗證錯誤 =====
 
     public static <T> ApiResponse<T> validationError(List<FieldError> errors) {
-        ApiResponse<T> response = new ApiResponse<>(
+        return new ApiResponse<>(
                 false, CommonErrorCode.VALIDATION_ERROR.getCode(),
-                CommonErrorCode.VALIDATION_ERROR.getMessage(), null);
-        response.setErrors(errors);
-        return response;
+                CommonErrorCode.VALIDATION_ERROR.getMessage(), null, errors);
     }
 
-    // ===== Getters and Setters =====
+    // ===== Getters =====
 
     public boolean isSuccess() {
         return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
     }
 
     public String getCode() {
         return code;
     }
 
-    public void setCode(String code) {
-        this.code = code;
-    }
-
     public String getMessage() {
         return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
     }
 
     public T getData() {
         return data;
     }
 
-    public void setData(T data) {
-        this.data = data;
-    }
-
     public List<FieldError> getErrors() {
         return errors;
-    }
-
-    public void setErrors(List<FieldError> errors) {
-        this.errors = errors;
     }
 }

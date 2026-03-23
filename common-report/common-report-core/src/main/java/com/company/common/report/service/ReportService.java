@@ -27,8 +27,10 @@ public class ReportService {
 
     private final Map<ReportEngineType, ReportEngine> engineMap;
     private final ReportThrottleService throttleService;
+    private final List<String> allowedTemplatePrefixes;
 
-    public ReportService(List<ReportEngine> engines, ReportThrottleService throttleService) {
+    public ReportService(List<ReportEngine> engines, ReportThrottleService throttleService,
+                         List<String> allowedTemplatePrefixes) {
         this.engineMap = engines.stream()
                 .collect(Collectors.toMap(
                         ReportEngine::getType,
@@ -39,6 +41,7 @@ public class ReportService {
                         }
                 ));
         this.throttleService = throttleService;
+        this.allowedTemplatePrefixes = allowedTemplatePrefixes;
     }
 
     /**
@@ -133,6 +136,12 @@ public class ReportService {
         if (normalized.contains("..") || normalized.startsWith("/")
                 || normalized.contains("://") || normalized.contains("%")) {
             throw BusinessException.badRequest("Invalid template path: path traversal not allowed");
+        }
+        boolean allowed = allowedTemplatePrefixes.stream()
+                .anyMatch(normalized::startsWith);
+        if (!allowed) {
+            throw BusinessException.badRequest(
+                    "Invalid template path: must start with one of " + allowedTemplatePrefixes);
         }
     }
 

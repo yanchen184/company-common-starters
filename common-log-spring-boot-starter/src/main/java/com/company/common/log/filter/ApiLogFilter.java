@@ -163,40 +163,6 @@ public class ApiLogFilter extends OncePerRequestFilter {
         }
     }
 
-    // ==================== --> 請求 log ====================
-
-    private void logRequestLine(ContentCachingRequestWrapper request,
-                                String httpMethod, String uri, String user,
-                                boolean logRequestBody, Set<String> maskFields) {
-        String bodyStr = null;
-        if (logRequestBody) {
-            bodyStr = extractBody(request, httpMethod, maskFields);
-        }
-
-        if (bodyStr != null && !bodyStr.isEmpty()) {
-            log.info("--> {} {} body={} user={}", httpMethod, uri, bodyStr, user);
-        } else {
-            log.info("--> {} {} user={}", httpMethod, uri, user);
-        }
-    }
-
-    /**
-     * 提取請求參數：GET/DELETE 取 query string，POST/PUT/PATCH 取 request body
-     */
-    private String extractBody(ContentCachingRequestWrapper request,
-                                String httpMethod, Set<String> maskFields) {
-        try {
-            if ("GET".equalsIgnoreCase(httpMethod) || "DELETE".equalsIgnoreCase(httpMethod)) {
-                return MaskUtils.maskQueryParams(request.getParameterMap(), maskFields);
-            } else {
-                return extractRequestBodyFromWrapper(request, maskFields);
-            }
-        } catch (Exception e) {
-            log.debug("提取 request body 失敗: {}", e.getMessage());
-            return null;
-        }
-    }
-
     /**
      * 從 ContentCachingRequestWrapper 讀取 body 並遮罩敏感欄位
      */

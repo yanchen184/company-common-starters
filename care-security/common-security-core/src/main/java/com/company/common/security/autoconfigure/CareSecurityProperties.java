@@ -16,6 +16,7 @@ public class CareSecurityProperties {
     private Otp otp = new Otp();
     private Captcha captcha = new Captcha();
     private CitizenCert citizenCert = new CitizenCert();
+    private Web web = new Web();
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
@@ -35,6 +36,8 @@ public class CareSecurityProperties {
     public void setCaptcha(Captcha captcha) { this.captcha = captcha; }
     public CitizenCert getCitizenCert() { return citizenCert; }
     public void setCitizenCert(CitizenCert citizenCert) { this.citizenCert = citizenCert; }
+    public Web getWeb() { return web; }
+    public void setWeb(Web web) { this.web = web; }
 
     public static class Jwt {
         private int accessTokenTtlMinutes = 30;
@@ -154,6 +157,19 @@ public class CareSecurityProperties {
         public void setFontSize(int fontSize) { this.fontSize = fontSize; }
         public boolean isAudioEnabled() { return audioEnabled; }
         public void setAudioEnabled(boolean audioEnabled) { this.audioEnabled = audioEnabled; }
+    }
+
+    public static class Web {
+        private java.util.List<String> publicEndpoints = java.util.List.of(
+                "/api/auth/login",
+                "/api/auth/captcha", "/api/auth/captcha/audio/**",
+                "/api/auth/refresh",
+                "/api/auth/otp/verify",
+                "/api/auth/cert/challenge", "/api/auth/cert/login", "/api/auth/cert/login-token"
+        );
+
+        public java.util.List<String> getPublicEndpoints() { return publicEndpoints; }
+        public void setPublicEndpoints(java.util.List<String> publicEndpoints) { this.publicEndpoints = publicEndpoints; }
     }
 
     public static class CitizenCert {

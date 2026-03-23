@@ -53,7 +53,7 @@ public class NotificationScheduler {
         }
         log.info("Processing {} scheduled notifications", ready.size());
         for (NotificationLog entry : ready) {
-            notificationService.deliverSingle(entry);
+            notificationService.deliver(entry);
         }
     }
 
@@ -72,7 +72,7 @@ public class NotificationScheduler {
         for (NotificationLog entry : retryable) {
             entry.setStatus(NotificationStatus.PENDING);
             logRepository.save(entry);
-            notificationService.deliverSingle(entry);
+            notificationService.deliver(entry);
         }
     }
 

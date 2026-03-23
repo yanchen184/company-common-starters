@@ -96,6 +96,7 @@ public class LogAutoConfiguration implements WebMvcConfigurer {
      * <p>設定最高優先序，在所有其他 filter 之前執行。
      */
     @Bean
+    @ConditionalOnMissingBean(TracingFilter.class)
     public FilterRegistrationBean<TracingFilter> tracingFilter(ObjectProvider<Tracer> tracerProvider) {
         log.info("[Common-Log] Registering TracingFilter (MDC traceId/spanId)");
         FilterRegistrationBean<TracingFilter> registration =
