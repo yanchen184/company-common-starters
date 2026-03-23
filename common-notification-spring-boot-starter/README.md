@@ -128,6 +128,25 @@ notificationService.send(NotificationMessage.builder()
         .category("APPROVAL")
         .build());
 
+// CC/BCC + 業務關聯 + 批次
+notificationService.send(NotificationMessage.builder()
+        .to(userId)
+        .cc(List.of(managerId))
+        .bcc(List.of(hrUserId))
+        .subject("請假審核通過")
+        .template("leave-approved")
+        .data("employeeName", name)
+        .channels("EMAIL")
+        .batchId("LEAVE-202603")
+        .ref("LEAVE", leaveId)
+        .build());
+
+// 依批次查詢
+List<NotificationLog> batch = notificationService.getNotificationsByBatchId("LEAVE-202603");
+
+// 依業務關聯查詢
+List<NotificationLog> logs = notificationService.getNotificationsByRef("ORDER", "ORD-001");
+
 // 排程發送（明天早上 9 點）
 notificationService.schedule(NotificationMessage.builder()
         .to(userId)
@@ -150,6 +169,10 @@ notificationService.schedule(NotificationMessage.builder()
 | `.channels("EMAIL", "WEBSOCKET")` | 發送通道（可多個） |
 | `.category(category)` | 分類（SYSTEM / APPROVAL / ...） |
 | `.sendAt(instant)` | 排程發送時間 |
+| `.cc(userIds)` | Email 副本收件人（`List<Long>`） |
+| `.bcc(userIds)` | Email 密件副本收件人（`List<Long>`） |
+| `.batchId(id)` | 批次 ID，用於分組查詢 |
+| `.ref(refType, refId)` | 業務關聯（成對設定，如 `"ORDER", "ORD-001"`） |
 
 ### 自訂通道（SPI 可插拔）
 
@@ -255,6 +278,11 @@ NotificationScheduler
 | SENT_AT | 實際發送時間 |
 | ERROR_MESSAGE | 錯誤訊息 |
 | RETRY_COUNT | 重試次數 |
+| CC_USER_IDS | 副本收件人（逗號分隔 userId） |
+| BCC_USER_IDS | 密件副本收件人（逗號分隔 userId） |
+| BATCH_ID | 批次 ID（用於分組查詢） |
+| REF_TYPE | 業務類型（如 ORDER, APPROVAL） |
+| REF_ID | 業務 ID（String 相容 UUID） |
 | VERSION | 樂觀鎖 |
 
 ---
@@ -408,3 +436,6 @@ common-notification-spring-boot-starter/
 - NotificationScheduler（排程發送 + 重試 + 自動清理）
 - 獨立線程池，非阻塞
 - RecipientResolver 介面（消費端實作）
+- Email CC/BCC 副本寄送
+- 批次 ID 分組查詢（batchId）
+- 業務關聯追溯（refType + refId，`@PrePersist` 驗證成對一致性）

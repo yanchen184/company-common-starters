@@ -35,4 +35,15 @@ public interface NotificationLogRepository extends JpaRepository<NotificationLog
     @Query("DELETE FROM NotificationLog n WHERE n.status IN ('SENT', 'FAILED') "
             + "AND n.createdDate < :before")
     int deleteOlderThan(Instant before);
+
+    /** Find notifications by batch ID. */
+    List<NotificationLog> findByBatchIdOrderByCreatedDateDesc(String batchId);
+
+    /** Find notifications by business reference. */
+    List<NotificationLog> findByRefTypeAndRefIdOrderByCreatedDateDesc(String refType, String refId);
+
+    /** Count notifications grouped by status for a batch. */
+    @Query("SELECT n.status, COUNT(n) FROM NotificationLog n "
+            + "WHERE n.batchId = :batchId GROUP BY n.status")
+    List<Object[]> countByBatchIdGroupByStatus(String batchId);
 }

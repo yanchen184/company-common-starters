@@ -47,8 +47,30 @@ public class EmailChannel implements NotificationChannel {
         helper.setSubject(notification.getSubject());
         helper.setText(notification.getContent(), true);
 
+        String[] ccEmails = resolveEmails(notification.getCcUserIds());
+        if (ccEmails.length > 0) {
+            helper.setCc(ccEmails);
+        }
+        String[] bccEmails = resolveEmails(notification.getBccUserIds());
+        if (bccEmails.length > 0) {
+            helper.setBcc(bccEmails);
+        }
+
         mailSender.send(message);
-        log.debug("Email sent to {} (user {}): {}",
-                email, notification.getRecipientId(), notification.getSubject());
+        log.debug("Email sent to {} (user {}), cc={}, bcc={}: {}",
+                email, notification.getRecipientId(),
+                ccEmails.length, bccEmails.length, notification.getSubject());
+    }
+
+    private String[] resolveEmails(String commaUserIds) {
+        if (commaUserIds == null || commaUserIds.isBlank()) {
+            return new String[0];
+        }
+        return java.util.Arrays.stream(commaUserIds.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(s -> recipientResolver.resolveEmail(Long.parseLong(s)))
+                .filter(e -> e != null && !e.isBlank())
+                .toArray(String[]::new);
     }
 }

@@ -155,6 +155,20 @@ public class NotificationService {
         return defaultChannels;
     }
 
+    /**
+     * Get notifications by batch ID.
+     */
+    public List<NotificationLog> getNotificationsByBatchId(String batchId) {
+        return logRepository.findByBatchIdOrderByCreatedDateDesc(batchId);
+    }
+
+    /**
+     * Get notifications by business reference.
+     */
+    public List<NotificationLog> getNotificationsByRef(String refType, String refId) {
+        return logRepository.findByRefTypeAndRefIdOrderByCreatedDateDesc(refType, refId);
+    }
+
     private NotificationLog createLogEntry(Long recipientId, String channelName,
                                            NotificationMessage message, String content) {
         NotificationLog entry = new NotificationLog();
@@ -164,7 +178,19 @@ public class NotificationService {
         entry.setContent(content);
         entry.setCategory(message.getCategory());
         entry.setStatus(NotificationStatus.PENDING);
+        entry.setCcUserIds(toCommaString(message.getCc()));
+        entry.setBccUserIds(toCommaString(message.getBcc()));
+        entry.setBatchId(message.getBatchId());
+        entry.setRefType(message.getRefType());
+        entry.setRefId(message.getRefId());
         return entry;
+    }
+
+    private static String toCommaString(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return null;
+        }
+        return ids.stream().map(String::valueOf).collect(Collectors.joining(","));
     }
 
     private static String truncate(String s, int maxLen) {

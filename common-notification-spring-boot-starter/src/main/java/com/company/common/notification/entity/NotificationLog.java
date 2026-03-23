@@ -9,6 +9,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
@@ -23,7 +25,9 @@ import java.time.Instant;
 @Table(name = "NOTIFICATION_LOG", indexes = {
         @Index(name = "idx_notif_recipient_status", columnList = "RECIPIENT_ID, STATUS"),
         @Index(name = "idx_notif_status_send_at", columnList = "STATUS, SEND_AT"),
-        @Index(name = "idx_notif_category", columnList = "CATEGORY")
+        @Index(name = "idx_notif_category", columnList = "CATEGORY"),
+        @Index(name = "idx_notif_batch_id", columnList = "BATCH_ID"),
+        @Index(name = "idx_notif_ref", columnList = "REF_TYPE, REF_ID")
 })
 public class NotificationLog extends AuditableEntity {
 
@@ -63,9 +67,32 @@ public class NotificationLog extends AuditableEntity {
     @Column(name = "RETRY_COUNT", nullable = false)
     private int retryCount = 0;
 
+    @Column(name = "CC_USER_IDS", length = 2000)
+    private String ccUserIds;
+
+    @Column(name = "BCC_USER_IDS", length = 2000)
+    private String bccUserIds;
+
+    @Column(name = "BATCH_ID", length = 64)
+    private String batchId;
+
+    @Column(name = "REF_TYPE", length = 50)
+    private String refType;
+
+    @Column(name = "REF_ID", length = 50)
+    private String refId;
+
     @Version
     @Column(name = "VERSION")
     private Integer version;
+
+    @PrePersist
+    @PreUpdate
+    private void validateRef() {
+        if ((refType == null) != (refId == null)) {
+            throw new IllegalStateException("refType and refId must both be set or both be null");
+        }
+    }
 
     public Long getId() {
         return id;
@@ -161,5 +188,45 @@ public class NotificationLog extends AuditableEntity {
 
     public void setVersion(Integer version) {
         this.version = version;
+    }
+
+    public String getCcUserIds() {
+        return ccUserIds;
+    }
+
+    public void setCcUserIds(String ccUserIds) {
+        this.ccUserIds = ccUserIds;
+    }
+
+    public String getBccUserIds() {
+        return bccUserIds;
+    }
+
+    public void setBccUserIds(String bccUserIds) {
+        this.bccUserIds = bccUserIds;
+    }
+
+    public String getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
+    }
+
+    public String getRefType() {
+        return refType;
+    }
+
+    public void setRefType(String refType) {
+        this.refType = refType;
+    }
+
+    public String getRefId() {
+        return refId;
+    }
+
+    public void setRefId(String refId) {
+        this.refId = refId;
     }
 }

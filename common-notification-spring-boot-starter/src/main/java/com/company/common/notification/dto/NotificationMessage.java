@@ -23,6 +23,8 @@ import java.util.Set;
 public class NotificationMessage {
 
     private List<Long> to;
+    private List<Long> cc;
+    private List<Long> bcc;
     private String subject;
     private String content;
     private String template;
@@ -30,6 +32,9 @@ public class NotificationMessage {
     private Set<String> channels;
     private String category;
     private Instant sendAt;
+    private String batchId;
+    private String refType;
+    private String refId;
 
     private NotificationMessage() {
     }
@@ -40,6 +45,26 @@ public class NotificationMessage {
 
     public List<Long> getTo() {
         return to;
+    }
+
+    public List<Long> getCc() {
+        return cc;
+    }
+
+    public List<Long> getBcc() {
+        return bcc;
+    }
+
+    public String getBatchId() {
+        return batchId;
+    }
+
+    public String getRefType() {
+        return refType;
+    }
+
+    public String getRefId() {
+        return refId;
     }
 
     public String getSubject() {
@@ -133,6 +158,27 @@ public class NotificationMessage {
 
         public Builder category(String category) {
             msg.category = category;
+            return this;
+        }
+
+        public Builder cc(List<Long> userIds) {
+            msg.cc = userIds;
+            return this;
+        }
+
+        public Builder bcc(List<Long> userIds) {
+            msg.bcc = userIds;
+            return this;
+        }
+
+        public Builder batchId(String batchId) {
+            msg.batchId = batchId;
+            return this;
+        }
+
+        public Builder ref(String refType, String refId) {
+            msg.refType = refType;
+            msg.refId = refId;
             return this;
         }
 
