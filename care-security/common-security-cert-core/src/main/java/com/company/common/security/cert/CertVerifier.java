@@ -57,7 +57,7 @@ public class CertVerifier {
     private static final int OCSP_TIMEOUT_MS = 5000;
     private static final int CRL_TIMEOUT_MS = 15000;
     private static final Map<String, CachedCrl> crlCache = new ConcurrentHashMap<>();
-    private static long crlCacheTtlMs = 3600_000L; // 1 hour
+    private static volatile long crlCacheTtlMs = 3600_000L; // 1 hour
 
     private final X509Certificate certificate;
     private final List<X509Certificate> intermediateCerts;
@@ -195,13 +195,19 @@ public class CertVerifier {
             conn.setDoOutput(true);
             conn.setConnectTimeout(OCSP_TIMEOUT_MS);
             conn.setReadTimeout(OCSP_TIMEOUT_MS);
-            conn.getOutputStream().write(ocspReq.getEncoded());
+            try (var os = conn.getOutputStream()) {
+                os.write(ocspReq.getEncoded());
+            }
 
             if (conn.getResponseCode() != 200) {
                 return null;
             }
 
-            OCSPResp resp = new OCSPResp(conn.getInputStream().readAllBytes());
+            byte[] respBytes;
+            try (InputStream respIs = conn.getInputStream()) {
+                respBytes = respIs.readAllBytes();
+            }
+            OCSPResp resp = new OCSPResp(respBytes);
             if (resp.getStatus() != OCSPResp.SUCCESSFUL) {
                 return null;
             }

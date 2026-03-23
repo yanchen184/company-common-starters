@@ -323,15 +323,20 @@ public class MoicaCertUtils {
             conn.setConnectTimeout(OCSP_CONNECT_TIMEOUT_MS);
             conn.setReadTimeout(OCSP_READ_TIMEOUT_MS);
 
-            conn.getOutputStream().write(ocspReqBytes);
-            conn.getOutputStream().flush();
+            try (var os = conn.getOutputStream()) {
+                os.write(ocspReqBytes);
+                os.flush();
+            }
 
             if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
                 log.warn("OCSP responder returned HTTP {}", conn.getResponseCode());
                 return null;
             }
 
-            byte[] respBytes = conn.getInputStream().readAllBytes();
+            byte[] respBytes;
+            try (InputStream respIs = conn.getInputStream()) {
+                respBytes = respIs.readAllBytes();
+            }
             OCSPResp ocspResp = new OCSPResp(respBytes);
 
             if (ocspResp.getStatus() != OCSPResp.SUCCESSFUL) {
@@ -580,7 +585,7 @@ public class MoicaCertUtils {
     // ========== Inner classes ==========
 
     private record CachedCrl(X509CRL crl, long cachedAtMs) {
-        static long cacheTtlMs = 3600_000L; // default 1 hour
+        static volatile long cacheTtlMs = 3600_000L; // default 1 hour
 
         boolean isExpired() {
             return System.currentTimeMillis() - cachedAtMs > cacheTtlMs;

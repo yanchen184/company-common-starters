@@ -17,6 +17,7 @@
 
     <properties>
         <password4j.version>1.8.2</password4j.version>
+        <bouncycastle.version>1.79</bouncycastle.version>
         <!-- jackson-bom: Spring Boot 4.0.3 綁定 3.0.4，有 GHSA-72hv-8253-57qq 漏洞（僅影響 async parser/WebFlux）。
              修復版 3.1.0 與 Spring Boot 4.0.3 不相容（JsonMapper$Builder breaking change），
              待 Spring Boot 升級至 4.0.4+ 後再更新。 -->
@@ -80,6 +81,11 @@
                 <groupId>com.password4j</groupId>
                 <artifactId>password4j</artifactId>
                 <version>${password4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

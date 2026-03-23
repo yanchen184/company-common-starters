@@ -60,7 +60,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>3.0.2</version>
+            <version>${springdoc-openapi.version}</version>
             <scope>provided</scope>
         </dependency>
 
