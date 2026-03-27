@@ -29,7 +29,7 @@
 | 登入保護 | 沒有暴力破解防護 | 失敗鎖定（Redis 計數）+ CAPTCHA + OTP 可選 |
 | 稽核日誌 | 需要自己記錄 | 登入紀錄 + 操作日誌自動記錄 |
 | Swagger UI | 需要自己配置 Bearer Token | 自動配置 SpringDoc OpenAPI + Bearer 認證 |
-| 可選認證 | — | LDAP、OTP、CAPTCHA、自然人憑證，加依賴即啟用 |
+| 可選認證 | — | LDAP、OTP、CAPTCHA、自然人憑證、GCA、MOEACA、XCA，加依賴即啟用 |
 
 ---
 
@@ -187,7 +187,7 @@ care:
 |------|------|
 | OAuth2 Authorization Server | 標準協定，支援跨服務認證 |
 | RBAC 權限矩陣（Menu × CRUD） | 精細到每個功能頁面的 CRUD 控制 |
-| 可插拔認證模組 | LDAP、OTP、CAPTCHA、MOICA 各自獨立，加依賴即啟用 |
+| 可插拔認證模組 | LDAP、OTP、CAPTCHA、MOICA、GCA、MOEACA、XCA 各自獨立，加依賴即啟用 |
 | Redis Token 黑名單 | 登出後 Token 立即失效，不用等到期 |
 | 密碼歷史 | 防止使用者循環使用同一組密碼 |
 | SHA-512 + Salt | Password4j 實作，比 bcrypt 更快且安全足夠 |
@@ -240,6 +240,9 @@ care-security/
 ├── common-security-auth-otp/          # TOTP 兩步驟驗證
 ├── common-security-auth-captcha/      # 圖形驗證碼 + TTS
 ├── common-security-auth-moica/        # 自然人憑證
+├── common-security-auth-gca/          # 政府機關憑證（GCA）
+├── common-security-auth-moeaca/       # 工商憑證（MOEACA）
+├── common-security-auth-xca/          # 組織及團體憑證（XCA）
 ├── common-security-autoconfigure/     # AutoConfiguration
 ├── common-security-spring-boot-starter/ # Starter 空殼
 └── common-security-test/              # 207 個整合測試（9 Phase）
@@ -262,3 +265,4 @@ care-security/
 ## 版本
 
 - 1.0.0 — 初始版本：JWT 認證、RBAC、使用者管理、LDAP、OTP、CAPTCHA、自然人憑證、密碼政策、稽核日誌
+- 1.1.0 — 新增 GCA（政府機關憑證）、MOEACA（工商憑證）、XCA（組織及團體憑證）認證模組
